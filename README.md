@@ -39,6 +39,10 @@ Beta testers install manually:
 
 After install, a full manual regenerates inside your vault at `PrimeTask/PrimeTask for Obsidian.md` on the first sync.
 
+Official setup and troubleshooting guide:
+
+- https://www.primetask.app/docs/integrations/obsidian-integration
+
 ## Privacy and security
 
 - **All traffic is local.** The plugin talks to the PrimeTask app over `127.0.0.1`. Nothing crosses the public internet.
