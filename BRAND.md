@@ -23,7 +23,7 @@ They must not present themselves as:
 
 ## Official builds
 
-PrimeTask may use signed builds and in-app trust indicators to distinguish official or trusted plugin builds from unsigned or modified ones.
+PrimeTask may use in-app trust indicators to distinguish official PrimeTask plugin builds from modified or unofficial ones.
 
 ## Brand status
 

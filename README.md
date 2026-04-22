@@ -44,7 +44,7 @@ After install, a full manual regenerates inside your vault at `PrimeTask/PrimeTa
 - **All traffic is local.** The plugin talks to the PrimeTask app over `127.0.0.1`. Nothing crosses the public internet.
 - **No telemetry.** The plugin collects nothing. It calls only the PrimeTask app.
 - **Explicit authorization.** You approve the plugin once from inside the PrimeTask app with a 6-character code comparison. Revoke any time.
-- **ED25519-signed builds.** Official releases sign their auth requests with a key the PrimeTask app verifies. Forked builds run unsigned and show as "Unknown source" in the authorization dialog.
+- **Official build recognition.** Official PrimeTask releases are recognized by PrimeTask during authorization. Modified or unofficial builds may appear as unrecognized in the authorization dialog.
 - **Per-plugin kill switch.** Pause the plugin without revoking from PrimeTask's Connected Plugins UI.
 
 ## Development
@@ -66,13 +66,11 @@ npm run build
 
 Open the test vault in Obsidian, enable the plugin under Settings → Community plugins, and iterate. Reload Obsidian with `Cmd+R` to pick up rebuilds.
 
-### Signing key (optional)
+### Build recognition
 
-PrimeTask uses signed auth requests to distinguish official or trusted builds from unsigned ones. The current build flow is:
+Official PrimeTask releases are recognized by PrimeTask during authorization. Local or modified builds may appear as unrecognized during authorization.
 
-- **No key present:** the plugin still builds and runs, but PrimeTask shows it as "Unknown source" during authorization.
-
-Local signed dev builds are supported so you can test the full trusted flow before pushing. Public repos and forks must not contain private keys.
+For regular users, the important rule is simple: install official releases and only approve builds you trust.
 
 ## Roadmap
 
