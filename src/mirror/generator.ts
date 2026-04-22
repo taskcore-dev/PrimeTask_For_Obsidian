@@ -308,7 +308,7 @@ async function writeGuideFile(ctx: GenerationContext, path: string): Promise<voi
   lines.push('You need:');
   lines.push('');
   lines.push('1. **The PrimeTask desktop app** installed and running on the same machine as Obsidian. macOS or Windows.');
-  lines.push('2. **Obsidian 1.4+** with the PrimeTask plugin installed and enabled.');
+  lines.push('2. **Obsidian 1.12+** with the PrimeTask plugin installed and enabled.');
   lines.push('3. **At least one space** in PrimeTask. The plugin reads and writes to one space at a time (the "locked space").');
   lines.push('4. **External Integrations** enabled in PrimeTask settings. You\'ll do this in Step 1 below.');
   lines.push('');

@@ -20,7 +20,7 @@ Your [PrimeTask](https://primetask.app) tasks and projects, live inside Obsidian
 
 ## Requirements
 
-- Obsidian 1.5 or newer.
+- Obsidian 1.12 or newer.
 - PrimeTask desktop app (macOS or Windows) installed and running on the same machine.
 - **External Integrations** enabled in PrimeTask → Settings.
 
