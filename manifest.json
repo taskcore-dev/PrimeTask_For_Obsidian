@@ -1,0 +1,11 @@
+{
+  "id": "primetask-sync",
+  "name": "PrimeTask for Obsidian",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Your PrimeTask tasks and projects, live inside Obsidian. Browse them in a sidebar, promote any item into a linked note, query with Bases or Dataview. Runs locally, nothing leaves your machine.",
+  "author": "PrimeTask",
+  "authorUrl": "https://primetask.app",
+  "fundingUrl": "https://primetask.app",
+  "isDesktopOnly": true
+}

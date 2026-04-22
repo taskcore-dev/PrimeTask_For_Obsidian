@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output (committed only on release tags)
+main.js
+main.js.map
+
+# Plugin user data (must never ship)
+data.json
+
+# Signing key for authorization requests. NEVER commit.
+# Dev builds use a locally-checked-out dev key; release builds inject the
+# production key via the PRIMETASK_SIGNING_KEY env var in CI. Forks with no
+# key produce an unsigned plugin that will show as "Unknown source" in
+# PrimeTask — correct behaviour.
+

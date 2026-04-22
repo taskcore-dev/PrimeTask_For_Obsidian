@@ -1,0 +1,1647 @@
+/* ============================================================================
+   PrimeTask for Obsidian — plugin styles
+   ========================================================================= */
+
+/* ---------- Status bar indicator ---------- */
+
+.primetask-status {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  cursor: default;
+}
+
+.primetask-status-dot {
+  display: inline-block !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50%;
+  background: #9ca3af;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.primetask-status-connected {
+  background: #22c55e !important;
+  border-color: rgba(34, 197, 94, 0.6) !important;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.45);
+}
+
+.primetask-status-connecting {
+  background: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  animation: primetask-pulse 1.4s ease-in-out infinite;
+}
+
+.primetask-status-disconnected,
+.primetask-status-error {
+  background: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+.primetask-status-disabled {
+  background: #6b7280 !important;
+  border-color: rgba(107, 114, 128, 0.5) !important;
+  opacity: 0.7;
+}
+
+.primetask-status-hidden {
+  display: none !important;
+}
+
+.primetask-status-needs-auth {
+  background: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.6) !important;
+  animation: primetask-pulse 1.8s ease-in-out infinite;
+}
+
+.primetask-status-paused {
+  background: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+}
+
+/* ---------- Authorize modal ---------- */
+
+.primetask-authorize-modal h2 {
+  margin-top: 0;
+}
+
+.primetask-authorize-nonce {
+  margin: 16px 0;
+  padding: 16px;
+  text-align: center;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+}
+
+.primetask-authorize-nonce-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.primetask-authorize-nonce-code {
+  font-family: var(--font-monospace, 'SF Mono', Menlo, monospace);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text-normal);
+}
+
+.primetask-authorize-steps {
+  margin: 0 0 16px 20px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.primetask-authorize-status {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.primetask-authorize-status-success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #15803d;
+}
+
+.theme-dark .primetask-authorize-status-success {
+  color: #4ade80;
+}
+
+.primetask-authorize-status-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+}
+
+.theme-dark .primetask-authorize-status-error {
+  color: #fca5a5;
+}
+
+/* ============================================================================
+   Create Task modal — premium custom styling, no Obsidian Setting defaults.
+   ========================================================================= */
+
+.primetask-create-modal {
+  width: min(560px, 90vw);
+  padding: 0;
+  overflow: hidden;
+}
+
+.primetask-create-modal .modal-close-button {
+  display: none; /* using our own close button in the header */
+}
+
+.primetask-create-modal .modal-content {
+  padding: 0;
+}
+
+.pt-create-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pt-create-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-normal);
+}
+
+.pt-create-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.pt-create-close:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.pt-create-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pt-create-body {
+  padding: 18px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pt-field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.pt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pt-input,
+.pt-select {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--background-secondary) !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  border-radius: 8px !important;
+  color: var(--text-normal) !important;
+  caret-color: var(--text-normal);
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 120ms ease, background 120ms ease;
+  font-family: inherit;
+}
+
+/* Ghost placeholder — monochrome, clearly translucent so users know the
+   field is empty (not already filled). Theme accent is explicitly ignored. */
+.pt-input::placeholder,
+.pt-input-title::placeholder,
+.pt-input-desc::placeholder,
+.pt-create-modal input::placeholder,
+.pt-create-modal textarea::placeholder {
+  color: rgba(0, 0, 0, 0.35) !important;
+  opacity: 1 !important;
+  font-weight: 400 !important;
+  font-style: normal;
+}
+
+.theme-dark .pt-input::placeholder,
+.theme-dark .pt-input-title::placeholder,
+.theme-dark .pt-input-desc::placeholder,
+.theme-dark .pt-create-modal input::placeholder,
+.theme-dark .pt-create-modal textarea::placeholder {
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.pt-input:hover,
+.pt-select:hover {
+  border-color: var(--text-muted) !important;
+}
+
+.pt-input:focus,
+.pt-input:focus-visible,
+.pt-select:focus,
+.pt-select:focus-visible {
+  border-color: var(--text-normal) !important;
+  background: var(--background-primary) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: var(--text-normal) !important;
+}
+
+.pt-input-title {
+  font-size: 15px;
+  font-weight: 500;
+  padding: 11px 14px;
+}
+
+.pt-input-desc {
+  resize: vertical;
+  min-height: 60px;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+/* Pill dropdowns — used inside Create Task modal for project/status/priority */
+.pt-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  color: var(--text-normal);
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease;
+  min-height: 38px;
+  box-shadow: none;
+}
+
+.pt-pill:hover {
+  border-color: var(--text-muted);
+}
+
+.pt-pill-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--background-secondary);
+}
+
+.pt-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pt-pill-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pt-pill-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+}
+
+.pt-pill-caret {
+  display: inline-flex;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pt-pill-caret svg {
+  width: 12px;
+  height: 12px;
+}
+
+.pt-create-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.pt-create-hint {
+  font-size: 11px;
+  color: var(--text-faint) !important;
+}
+
+.pt-create-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pt-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.pt-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--background-modifier-border);
+}
+
+.pt-btn-ghost:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+}
+
+.pt-btn-primary {
+  background: var(--text-normal);
+  color: var(--background-primary);
+  border-color: var(--text-normal);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.pt-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.pt-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   Sidebar view — Tasks + Projects panel
+   Goal: premium, monochrome, minimal chrome, clear hierarchy.
+   ========================================================================= */
+
+.primetask-view {
+  padding: 0;
+}
+
+/* Targeted reset only for tabs and project summary rows — these are bare
+   containers that should inherit NO Obsidian-theme button chrome. Other
+   <button> elements (status circle, priority dot, chevrons, icon buttons)
+   keep their specific styles. */
+.primetask-view-tab,
+.primetask-project-summary,
+.primetask-project-summary-row > button,
+.primetask-view-tabs > button {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Header — sticky unified block. Uses `--pt-header-inset` so every child
+   (brand, search, tabs, filter bar) starts at the same left edge.
+   Backdrop is opaque-first (explicit fallback color), with a blur filter
+   layered for themes that use translucent `--background-primary`. The
+   `::before` pseudo extends the backdrop a few pixels above the sticky
+   position so task rows can't peek through a sub-pixel gap between the
+   header and the top of the scroll container. */
+.primetask-view-header {
+  --pt-header-inset: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  /* Tight top padding pulls the logo closer to the pane edge; bottom
+     padding leaves a small gap between the tab row and the first task
+     row below. The gap sits inside the sticky region so the blurred
+     background covers it and no content peeks through. */
+  padding: 4px var(--pt-header-inset) 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+}
+
+.primetask-view-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -24px;
+  height: 24px;
+  background: inherit;
+  backdrop-filter: inherit;
+  -webkit-backdrop-filter: inherit;
+  pointer-events: none;
+}
+
+/* Solid-opaque fallback layer painted behind the blurred one. Opera for
+   themes that leave `--background-primary` fully transparent; the blur
+   alone can't hide content without something to blur into. */
+.primetask-view-header::after {
+  content: '';
+  position: absolute;
+  inset: -24px 0 0 0;
+  background: var(--background-primary);
+  opacity: 0.85;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.primetask-view-titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.primetask-view-brand {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.primetask-view-logo {
+  max-height: 22px;
+  max-width: 140px;
+  width: auto;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: filter 160ms ease;
+}
+
+.theme-dark .primetask-view-logo {
+  filter: invert(1) hue-rotate(180deg) brightness(1.05);
+}
+
+.primetask-view-brand-fallback {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+  letter-spacing: -0.005em;
+}
+
+.primetask-view-statuschip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.primetask-view-statuschip-dotonly {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+/* Search — full width row of its own */
+.primetask-view-searchrow {
+  padding: 8px 0 0;
+}
+
+.primetask-view-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 9px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  height: 28px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.primetask-view-search:focus-within {
+  border-color: var(--text-muted);
+  background: var(--background-primary);
+}
+
+.primetask-view-search-icon {
+  display: inline-flex;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.primetask-view-search-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.primetask-view-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-normal) !important;
+  caret-color: var(--text-normal);
+  font-size: 12px;
+  padding: 2px 0;
+  border-radius: 0;
+}
+
+.primetask-view-search-input:focus,
+.primetask-view-search-input:focus-visible,
+.primetask-view-search-input:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: var(--text-normal) !important;
+}
+
+.primetask-view-search-input::placeholder {
+  color: var(--text-faint) !important;
+  opacity: 1;
+}
+
+.primetask-view-search-clear {
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primetask-view-search-clear:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.primetask-view-search-clear svg {
+  width: 11px;
+  height: 11px;
+}
+
+.primetask-view-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.primetask-view-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.primetask-view-iconbtn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.primetask-view-iconbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.primetask-view-iconbtn.is-spinning svg {
+  animation: primetask-spin 0.8s linear infinite;
+}
+
+@keyframes primetask-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Tabs — live inside the filter bar, left-aligned */
+.primetask-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.primetask-view-filter-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--background-modifier-border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.primetask-view-tab {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+  height: auto !important;
+  box-shadow: none !important;
+}
+
+.primetask-view-tab:hover {
+  color: var(--text-normal) !important;
+}
+
+.primetask-view-tab.is-active {
+  color: var(--text-normal) !important;
+  border-bottom-color: var(--text-normal) !important;
+}
+
+.primetask-view-tab-label {
+  font-weight: 500;
+}
+
+.primetask-view-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 6px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.primetask-view-tab.is-active .primetask-view-tab-count {
+  background: var(--text-normal);
+  color: var(--background-primary);
+}
+
+/* (tab-count styles defined above — kept single source of truth) */
+
+/* Body + list */
+.primetask-view-body {
+  padding: 0 0 24px;
+}
+
+.primetask-view-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Task row — left padding matches header inset so the status circle aligns
+   vertically with the logo / search / tabs above. */
+.primetask-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px 10px 12px;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+  transition: background 120ms ease;
+}
+
+.primetask-task-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.primetask-task-status {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  margin-top: 2px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: all 120ms ease;
+  position: relative;
+}
+
+.primetask-task-status:hover {
+  border-color: var(--text-normal);
+  transform: scale(1.08);
+}
+
+.primetask-task-status.is-done {
+  background: var(--text-normal);
+  border-color: var(--text-normal);
+}
+
+.primetask-task-status.is-done::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--background-primary);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+/* Status pill — dynamic status picker trigger */
+.primetask-task-statuspill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px;
+  margin: 0;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.primetask-task-statuspill:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--text-muted);
+  color: var(--text-normal);
+}
+
+.primetask-task-statuspill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.primetask-task-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.primetask-task-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-normal);
+  cursor: pointer;
+  line-height: 1.4;
+  word-break: break-word;
+  transition: color 120ms ease;
+}
+
+.primetask-task-name:hover {
+  color: var(--text-accent, var(--interactive-accent));
+  text-decoration: underline;
+  text-decoration-color: var(--background-modifier-border);
+  text-underline-offset: 3px;
+}
+
+.primetask-task-row.is-done .primetask-task-name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+}
+
+.primetask-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.primetask-task-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+
+.primetask-task-project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.primetask-task-due {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font: inherit !important;
+  line-height: 1.3 !important;
+  cursor: pointer;
+  border-radius: 0 !important;
+  text-align: left;
+  transition: color 120ms ease;
+}
+
+.primetask-task-due:hover {
+  color: var(--text-normal) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.primetask-task-due:focus,
+.primetask-task-due:focus-visible,
+.primetask-task-due:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.primetask-task-due-empty {
+  color: var(--text-faint);
+  font-size: 0.9em;
+  opacity: 0.6;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+.primetask-task-row:hover .primetask-task-due-empty {
+  opacity: 1;
+}
+
+.primetask-due-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.primetask-due-modal-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-family: inherit;
+}
+
+.primetask-due-modal-input:focus {
+  outline: none;
+  border-color: var(--text-accent, var(--interactive-accent));
+}
+
+.primetask-due-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.primetask-due-modal-btn {
+  padding: 6px 14px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.primetask-due-modal-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.primetask-due-modal-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.primetask-due-modal-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.primetask-task-subtasks {
+  color: var(--text-faint);
+}
+
+/* Tag chip — inline #name text in the task row meta. Read-only from the
+   plugin's perspective; tags are edited in PrimeTask, we just display. */
+.primetask-task-tag {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.primetask-task-tag:not(:last-child) {
+  margin-right: 2px;
+}
+
+.primetask-task-note-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-accent, var(--interactive-accent));
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.primetask-task-note-badge:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.primetask-task-note-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.primetask-task-priority {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  margin-top: 5px;
+  background: var(--text-faint);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.primetask-task-priority:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px var(--background-modifier-hover);
+}
+
+.primetask-priority-urgent { background: #ef4444; }
+.primetask-priority-high   { background: #f59e0b; }
+.primetask-priority-medium { background: #3b82f6; }
+.primetask-priority-low    { background: var(--text-faint); }
+
+/* Project row — clean, minimal, no progress bar by default.
+   Left color accent bar signals project color when color is present.
+   Expanded state reveals tasks with a soft background tint. */
+
+.primetask-project-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--background-modifier-border-hover);
+  transition: background 120ms ease;
+}
+
+.primetask-project-row:hover:not(.is-expanded) {
+  background: var(--background-modifier-hover);
+}
+
+.primetask-project-row.is-expanded {
+  background: var(--background-secondary);
+}
+
+.primetask-project-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 12px 12px 10px;
+}
+
+.primetask-project-summary {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  box-shadow: none !important;
+  height: auto !important;
+}
+
+.primetask-project-summary:hover .primetask-project-name {
+  color: var(--text-accent, var(--interactive-accent));
+}
+
+.primetask-project-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 18px; /* matches name line-height so it aligns with the title */
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 0;
+  transition: transform 160ms ease;
+}
+
+.primetask-project-chevron svg {
+  width: 11px;
+  height: 11px;
+  transition: transform 160ms ease;
+}
+
+.primetask-project-chevron.is-expanded svg {
+  transform: rotate(90deg);
+}
+
+.primetask-project-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px; /* aligns with title baseline */
+}
+
+.primetask-project-textcol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.primetask-project-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+.primetask-project-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+}
+
+.primetask-project-rightactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-left: 8px;
+  padding-top: 2px;
+}
+
+.primetask-project-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+}
+
+.primetask-project-openicon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+.primetask-project-row:hover .primetask-project-openicon-btn,
+.primetask-project-row.is-expanded .primetask-project-openicon-btn {
+  opacity: 1;
+}
+
+.primetask-project-openicon-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.primetask-project-openicon-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Filter row — compact pill buttons, own dedicated row */
+.primetask-view-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 4px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.primetask-view-filter-dropbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  height: 22px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  line-height: 1;
+  max-width: 140px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.primetask-view-filter-dropbtn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--text-muted);
+  color: var(--text-normal);
+}
+
+.primetask-view-filter-dropbtn.is-active {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+}
+
+.primetask-view-filter-dropbtn > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primetask-view-filter-dropbtn-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.primetask-view-filter-dropbtn-icon svg {
+  width: 10px;
+  height: 10px;
+}
+
+.primetask-view-filter-caret {
+  display: inline-flex;
+  color: var(--text-faint);
+  margin-left: 1px;
+}
+
+.primetask-view-filter-caret svg {
+  width: 9px;
+  height: 9px;
+}
+
+.primetask-view-filter-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-left: auto; /* pushes eye-toggle to the far right */
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.primetask-view-filter-iconbtn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.primetask-view-filter-iconbtn.is-active {
+  color: var(--text-normal);
+}
+
+.primetask-view-filter-iconbtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Chevron for parent tasks — sits between the circle and the title */
+.primetask-task-chevron {
+  width: 14px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  margin-top: 2px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease, color 120ms ease;
+}
+
+.primetask-task-chevron:hover {
+  color: var(--text-normal);
+}
+
+.primetask-task-chevron svg {
+  width: 11px;
+  height: 11px;
+  transition: transform 160ms ease;
+}
+
+.primetask-task-chevron.is-expanded svg {
+  transform: rotate(90deg);
+}
+
+/* Subtask indentation — shifted in by one level per depth, aligned under the parent's title area */
+.primetask-task-row.is-subtask {
+  padding-left: calc(12px + var(--primetask-indent, 0px));
+  background: var(--background-primary);
+}
+
+.primetask-task-row.is-subtask .primetask-task-name {
+  font-size: 12px;
+}
+
+/* Due date urgency */
+.primetask-task-due.primetask-due-overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.primetask-task-due.primetask-due-today {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.primetask-task-due.primetask-due-soon {
+  color: var(--text-normal);
+}
+
+.theme-dark .primetask-task-due.primetask-due-overdue {
+  color: #f87171;
+}
+
+.theme-dark .primetask-task-due.primetask-due-today {
+  color: #fbbf24;
+}
+
+/* Project inline expansion — full-width task list with clear separation */
+.primetask-project-tasks {
+  margin-top: 0;
+  padding: 2px 0 6px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+
+.primetask-project-tasklist {
+  margin: 0;
+}
+
+.primetask-project-tasklist .primetask-task-row {
+  padding-left: 14px;
+  padding-right: 12px;
+}
+
+.primetask-project-empty {
+  padding: 14px 16px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Empty state */
+.primetask-view-empty {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.primetask-view-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin-bottom: 6px;
+}
+
+.primetask-view-empty-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.primetask-status-label {
+  font-size: var(--font-ui-smaller, 12px);
+  color: var(--text-muted, inherit);
+}
+
+@keyframes primetask-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* ============================================================================
+   Settings page
+   Goal: feel native to Obsidian's settings, look premium, no layout drift.
+   ========================================================================= */
+
+/* Container-level spacing reset so our children align with native rows. */
+.primetask-settings {
+  padding-top: 0;
+}
+
+/* ---------- Header (logo + tagline + status chip + meta) ---------- */
+
+.primetask-settings-header {
+  text-align: center;
+  padding: 32px 24px 28px;
+  /* Margin-top gives the card breathing room below Obsidian's tab chrome
+     so the gradient doesn't slam into the very top edge of the modal. */
+  margin: 16px 0 24px 0;
+  border: 1px solid var(--background-modifier-border);
+  background: linear-gradient(
+    to bottom,
+    var(--background-secondary) 0%,
+    transparent 100%
+  );
+  /* Full rounded corners — card is no longer flush with the pane top, so
+     rounding only the top edges looks unfinished. */
+  border-radius: 12px;
+}
+
+.primetask-settings-logo {
+  max-width: 240px;
+  max-height: 72px;
+  width: auto;
+  height: auto;
+  display: inline-block;
+  margin-bottom: 16px;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: filter 160ms ease;
+}
+
+/* Auto-invert for dark mode. Obsidian sets body.theme-dark / body.theme-light. */
+.theme-dark .primetask-settings-logo {
+  filter: invert(1) hue-rotate(180deg) brightness(1.05);
+}
+
+.primetask-settings-wordmark {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px 0;
+  color: var(--text-normal);
+}
+
+.primetask-settings-tagline {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 480px;
+  margin: 0 auto 18px;
+  line-height: 1.55;
+}
+
+.primetask-settings-statuschip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 10px;
+  border-radius: 999px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.primetask-settings-statuschip-label {
+  line-height: 1;
+}
+
+.primetask-settings-meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.primetask-settings-meta-dot {
+  opacity: 0.45;
+}
+
+.primetask-settings-meta-link {
+  color: var(--text-muted) !important;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.primetask-settings-meta-link:hover {
+  color: var(--text-accent, var(--interactive-accent)) !important;
+  text-decoration: underline;
+}
+
+.primetask-settings-warn {
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--background-modifier-error, rgba(220, 53, 69, 0.08));
+  color: var(--text-error, #dc3545);
+  font-size: 13px;
+  line-height: 1.4;
+  border: 1px solid var(--background-modifier-error-hover, rgba(220, 53, 69, 0.25));
+}
+
+/* ---------- Section headers ----------
+   Section headers are Obsidian setting-item-heading rows. We let the theme
+   own their padding (same as regular setting rows) so the title's left edge
+   aligns with setting row names below it. Only typography + spacing overrides. */
+
+.primetask-settings .setting-item.setting-item-heading {
+  margin-top: 32px;
+}
+
+.primetask-settings-header + .setting-item.setting-item-heading {
+  margin-top: 8px;
+}
+
+.primetask-settings .setting-item-heading .setting-item-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.primetask-settings .setting-item-heading .setting-item-description {
+  max-width: 640px;
+  line-height: 1.5;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* ---------- Setting rows inside PrimeTask settings ---------- */
+
+.primetask-settings .setting-item-name {
+  font-weight: 500;
+}
+
+.primetask-settings .setting-item-description {
+  line-height: 1.5;
+}
+
+/* ---------- Monochrome premium controls ----------
+   Override Obsidian's accent color on our toggles and buttons so PrimeTask
+   feels neutral and premium regardless of the user's chosen accent. */
+
+/* Toggles — keep native Obsidian / theme styling. No overrides. */
+
+/* Buttons — remove accent CTA color, use neutral premium styling. */
+.primetask-settings button {
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  transition: background 160ms ease, transform 80ms ease, box-shadow 160ms ease;
+}
+
+.primetask-settings button:not(.mod-warning):not([disabled]) {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+  border: 1px solid #111111 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.theme-dark .primetask-settings button:not(.mod-warning):not([disabled]) {
+  background-color: #f5f5f5 !important;
+  color: #111111 !important;
+  border: 1px solid #f5f5f5 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.primetask-settings button:not(.mod-warning):not([disabled]):hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.primetask-settings button:not(.mod-warning):not([disabled]):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Disabled state — clearly non-interactive, muted. */
+.primetask-settings button[disabled],
+.primetask-settings button:disabled {
+  background-color: var(--background-modifier-border) !important;
+  color: var(--text-faint) !important;
+  border-color: transparent !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+
+/* Reset button keeps its warning styling — don't monochrome destructive ops. */
+.primetask-settings button.mod-warning {
+  /* use theme default warning styling */
+}
+
+/* Dropdowns / text inputs — subtle premium look. */
+.primetask-settings .dropdown,
+.primetask-settings input[type="text"] {
+  border: 1px solid var(--background-modifier-border);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.primetask-settings .dropdown:hover,
+.primetask-settings input[type="text"]:hover {
+  border-color: var(--text-muted);
+}
+
+.primetask-settings .dropdown:focus,
+.primetask-settings input[type="text"]:focus {
+  border-color: var(--text-normal);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+  outline: none;
+}
+
+/* ---------- Footer ---------- */
+
+.primetask-settings-footer {
+  margin-top: 44px;
+  padding: 20px 0 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
