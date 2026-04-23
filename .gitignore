@@ -1,9 +1,9 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build output (committed only on release tags)
 main.js
 main.js.map
 
-# Plugin user data
+# Plugin user data (must never ship)
 data.json
