@@ -1,6 +1,6 @@
 {
   "name": "obsidian-primetask",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Your PrimeTask tasks and projects, live inside Obsidian. Browse them in a sidebar, promote any item into a linked note, query with Bases or Dataview. Runs locally, nothing leaves your machine.",
   "main": "main.js",
   "scripts": {

@@ -212,6 +212,34 @@
   gap: 12px;
 }
 
+/* "Create a task note in your vault" toggle row inside the create
+ * modal. Sits flush left so the checkbox lines up with the field
+ * labels above; muted hint text below explains what the option does. */
+.pt-field-checkbox {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pt-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-normal);
+  font-weight: 500;
+}
+
+.pt-checkbox-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.pt-field-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 .pt-label {
   font-size: 11px;
   font-weight: 600;
@@ -756,6 +784,20 @@
   background: var(--background-modifier-hover);
 }
 
+/* Brief flash applied when a status pill click in a project note
+ * routes to this row. The transition fades it back so the user sees
+ * exactly where they landed without leaving permanent visual debt. */
+.primetask-task-row.is-focused {
+  background: var(--interactive-accent-translucent, rgba(122, 120, 255, 0.18));
+  box-shadow: inset 3px 0 0 var(--interactive-accent);
+  animation: primetask-focus-flash 1.6s ease-out;
+}
+
+@keyframes primetask-focus-flash {
+  0%   { background: var(--interactive-accent-translucent, rgba(122, 120, 255, 0.35)); }
+  100% { background: transparent; }
+}
+
 .primetask-task-status {
   flex-shrink: 0;
   width: 16px;
@@ -1132,6 +1174,31 @@
   letter-spacing: -0.005em;
 }
 
+.primetask-project-namerow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.primetask-project-namerow .primetask-project-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.primetask-project-archived-pill {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .primetask-project-desc {
   font-size: 11px;
   color: var(--text-muted);
@@ -1271,8 +1338,16 @@
   border-radius: 5px;
   color: var(--text-muted);
   cursor: pointer;
-  margin-left: auto; /* pushes eye-toggle to the far right */
+  margin-left: auto; /* pushes the FIRST icon toggle to the far right */
   transition: background 120ms ease, color 120ms ease;
+}
+
+/* Subsequent icon toggles (e.g. archive next to show-done) sit
+ * tight against the previous one instead of also claiming auto
+ * margin — without this rule each iconbtn pushes itself to the
+ * right edge and creates a gap between them. */
+.primetask-view-filter-iconbtn ~ .primetask-view-filter-iconbtn {
+  margin-left: 4px;
 }
 
 .primetask-view-filter-iconbtn:hover {

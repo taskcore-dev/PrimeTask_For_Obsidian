@@ -127,6 +127,12 @@ export interface MirrorFileState {
   /** Last-known frontmatter values for `type: 'project'` files. Enables
    *  the poll-side refresh to skip writes when server state is unchanged. */
   projectSnapshot?: ProjectFrontmatterSnapshot;
+  /** Cached signature of the promoted-task list including each task's
+   *  status name + complete flag. Used to detect status pill changes
+   *  that the bare stems list (in `projectSnapshot.promotedTasks`) can't
+   *  see, so the project note rewrites when a status flips in
+   *  PrimeTask. Cheap string; rebuilt on every poll. */
+  projectTasksKey?: string;
 }
 
 export interface MirrorState {

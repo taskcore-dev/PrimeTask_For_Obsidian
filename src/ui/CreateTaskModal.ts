@@ -1,6 +1,6 @@
-import { App, Modal, Notice, setIcon, Menu } from 'obsidian';
+import { App, Modal, Notice, setIcon, Menu, TFile } from 'obsidian';
 import type PrimeTaskPlugin from '../main';
-import type { PrimeTaskProject, PrimeTaskStatus, PrimeTaskPriority } from '../api/client';
+import type { PrimeTaskProject, PrimeTaskStatus, PrimeTaskPriority, PrimeTaskTask } from '../api/client';
 
 export interface CreateTaskContext {
   projects: PrimeTaskProject[];
@@ -20,6 +20,7 @@ export class CreateTaskModal extends Modal {
   private statusId: string | null = null;
   private priorityId: string | null = null;
   private dueDate: string = '';
+  private createNote = false;
   private submitting = false;
 
   // Re-render hooks so pill buttons reflect current selection after a menu change
@@ -108,6 +109,23 @@ export class CreateTaskModal extends Modal {
     priorityField.createEl('label', { cls: 'pt-label', text: 'Priority' });
     this.renderPriorityPill(priorityField);
 
+    // "Also create a task note in your vault" — only offered when the
+    // markdown mirror is enabled, since the note can't land anywhere
+    // without it. One-step capture for users who know up-front they
+    // want a graph node alongside the task; otherwise they can still
+    // promote later from the sidebar's right-click menu.
+    if (this.plugin.settings.mirrorEnabled) {
+      const noteField = body.createDiv({ cls: 'pt-field pt-field-checkbox' });
+      const noteLabel = noteField.createEl('label', { cls: 'pt-checkbox-label' });
+      const noteCheckbox = noteLabel.createEl('input', { attr: { type: 'checkbox' } });
+      noteCheckbox.addEventListener('change', () => { this.createNote = noteCheckbox.checked; });
+      noteLabel.createSpan({ text: 'Create a task note in your vault' });
+      noteField.createEl('div', {
+        cls: 'pt-field-hint',
+        text: 'Adds a markdown file under Tasks/, with a backlink to this modal-created task. Useful when you want graph + Bases coverage for the task right away.',
+      });
+    }
+
     // Footer
     const footer = contentEl.createDiv({ cls: 'pt-create-footer' });
     footer.createSpan({ cls: 'pt-create-hint', text: 'Press Enter to create, Esc to cancel' });
@@ -150,8 +168,18 @@ export class CreateTaskModal extends Modal {
         this.projectId = null;
         this.projectBtnRender?.();
       }));
-      for (const p of this.ctx.projects) {
-        menu.addItem((item) => item.setTitle(p.name).setChecked(this.projectId === p.id).onClick(() => {
+      // Hide archived projects from the dropdown — same UX as the
+      // sidebar's Projects tab (archived hidden by default). If the
+      // currently selected project happens to be archived (e.g. user
+      // archived it in PT after opening this modal), keep it visible
+      // in the list so the selection stays meaningful and they can
+      // see what's selected.
+      const visibleProjects = this.ctx.projects.filter(
+        (p) => !p.isArchived || p.id === this.projectId,
+      );
+      for (const p of visibleProjects) {
+        const label = p.isArchived ? `${p.name} (archived)` : p.name;
+        menu.addItem((item) => item.setTitle(label).setChecked(this.projectId === p.id).onClick(() => {
           this.projectId = p.id;
           this.projectBtnRender?.();
         }));
@@ -223,7 +251,7 @@ export class CreateTaskModal extends Modal {
     }
     this.submitting = true;
     try {
-      await this.plugin.connection.getClient().createTask({
+      const created = await this.plugin.connection.getClient().createTask({
         name: trimmed,
         description: this.description.trim() || undefined,
         projectId: this.projectId ?? undefined,
@@ -234,9 +262,33 @@ export class CreateTaskModal extends Modal {
         // space is currently active in the PrimeTask app.
         spaceId: this.plugin.settings.defaultSpaceId ?? undefined,
       });
-      new Notice('Task created');
+
+      let promotedFile: TFile | null = null;
+      // One-step capture: if the user ticked "Create a task note in your
+      // vault", promote the task as soon as it exists. Failures here
+      // are non-fatal (the task still got created) — we surface a
+      // distinct Notice and let the user retry from the sidebar.
+      if (this.createNote && this.plugin.settings.mirrorEnabled) {
+        const task = created as PrimeTaskTask | undefined;
+        if (task && typeof task === 'object' && typeof (task as PrimeTaskTask).id === 'string') {
+          try {
+            promotedFile = await this.plugin.mirror.promoteExistingTaskToNote(task);
+          } catch (err) {
+            console.warn('[PrimeTask] Auto-promote after create failed', err);
+          }
+        }
+      }
+
+      new Notice(promotedFile ? 'Task and note created' : 'Task created');
       this.onCreate();
       this.close();
+      // Open the freshly-promoted note so the user can immediately
+      // drop notes into it. Fires after `close()` so the modal isn't
+      // covering the editor when the new file opens.
+      if (promotedFile) {
+        const leaf = this.plugin.app.workspace.getLeaf(false);
+        await leaf.openFile(promotedFile);
+      }
     } catch (err) {
       new Notice(`Create failed: ${err instanceof Error ? err.message : String(err)}`);
       this.submitting = false;

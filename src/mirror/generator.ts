@@ -10,6 +10,7 @@
 import { normalizePath, Vault, TFile } from 'obsidian';
 import type { PrimeTaskProject, PrimeTaskSpace, PrimeTaskTask } from '../api/client';
 import type { PrimeTaskSettings } from '../settings';
+import { getNormalisedMirrorFolder } from '../settings';
 import { asWikilink, stringifyFrontmatter } from './frontmatter';
 import { safeFilename } from './markdown';
 import { toLocalDatetimeFrontmatter, toLocalDateFrontmatter } from './taskFile';
@@ -81,7 +82,7 @@ export async function generateMirror(ctx: GenerationContext): Promise<Generation
   const result: GenerationResult = { createdOrUpdated: [], errors: [] };
   if (!ctx.settings.mirrorEnabled) return result;
 
-  const root = ctx.settings.mirrorFolder.replace(/\/+$/, '') || 'PrimeTask';
+  const root = getNormalisedMirrorFolder(ctx.settings);
   await ensureFolder(ctx.vault, root);
 
   // Rename legacy hub files (`Inbox.md`, `<SpaceName>.md`) to the new
@@ -1039,14 +1040,17 @@ async function writeFileIfChanged(
 ): Promise<void> {
   const existing = ctx.vault.getAbstractFileByPath(path);
   if (existing instanceof TFile) {
-    const current = await ctx.vault.read(existing);
-    if (current !== content) {
-      // Mark BEFORE modify — the 'modify' event fires synchronously
-      // during vault.modify, and the watcher's echo check needs the mark
-      // set by then.
-      ctx.markOwnWrite?.(path);
-      await ctx.vault.modify(existing, content);
-    }
+    // Mark BEFORE the write — the 'modify' event fires synchronously
+    // during vault.process, and the watcher's echo check needs the mark
+    // set by then.
+    ctx.markOwnWrite?.(path);
+    // vault.process is atomic and race-safe for files not currently
+    // open in an editor. The callback receives current content; we
+    // return the desired content. When the two match, vault.process
+    // skips the disk write entirely (same no-op behaviour as the
+    // previous "if (current !== content) modify" pattern, just
+    // pushed inside the API).
+    await ctx.vault.process(existing, () => content);
     // Intentionally FALL THROUGH to the state snapshot below. Even when
     // content is identical and the disk write is skipped, state.files[path]
     // must be populated so future diffs have a valid baseline. Without

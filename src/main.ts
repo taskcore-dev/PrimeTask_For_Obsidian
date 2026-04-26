@@ -75,19 +75,19 @@ export default class PrimeTaskPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'primetask-open-panel',
+      id: 'open-panel',
       name: 'Open PrimeTask panel',
       callback: () => { this.activateView().catch(() => {}); },
     });
 
     this.addCommand({
-      id: 'primetask-authorize',
+      id: 'authorize',
       name: 'Authorize PrimeTask connection',
       callback: () => this.openAuthorizeModal(),
     });
 
     this.addCommand({
-      id: 'primetask-ping',
+      id: 'ping',
       name: 'Check PrimeTask connection',
       callback: async () => {
         const res = await this.connection.pingOnce();
@@ -100,7 +100,7 @@ export default class PrimeTaskPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'primetask-sync-now',
+      id: 'sync-now',
       name: 'Sync now',
       callback: async () => {
         if (!this.settings.syncEnabled) { new Notice('Sync is paused. Enable sync in settings first.'); return; }
@@ -119,7 +119,7 @@ export default class PrimeTaskPlugin extends Plugin {
     // not just mirrored files. If cursor is in a project file, the created
     // task inherits that project.
     this.addCommand({
-      id: 'primetask-send-line',
+      id: 'send-line',
       name: 'Send current line as task to PrimeTask',
       editorCallback: (editor, view) => {
         const file = view.file;
@@ -219,7 +219,7 @@ export default class PrimeTaskPlugin extends Plugin {
     );
 
     this.addCommand({
-      id: 'primetask-promote-selection',
+      id: 'promote-selection',
       name: 'Send selection to PrimeTask and link here',
       editorCallback: async (editor, view) => {
         const file = view.file;
@@ -234,7 +234,7 @@ export default class PrimeTaskPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'primetask-send-selection',
+      id: 'send-selection',
       name: 'Send selection to PrimeTask',
       editorCallback: (editor) => {
         const selection = editor.getSelection().trim();
@@ -244,7 +244,7 @@ export default class PrimeTaskPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'primetask-convert-note-to-project',
+      id: 'convert-note-to-project',
       name: 'Convert note to PrimeTask project',
       editorCallback: async (_editor, view) => {
         const file = view.file;
@@ -254,13 +254,33 @@ export default class PrimeTaskPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'primetask-convert-note-to-task',
+      id: 'convert-note-to-task',
       name: 'Convert note to PrimeTask task',
       editorCallback: async (_editor, view) => {
         const file = view.file;
         if (!file) { new Notice('No active file'); return; }
         await this.mirror.convertNoteToTask(file);
       },
+    });
+
+    // Click handler for the obsidian:// links rendered in promoted-task
+    // status pills inside project notes. Reveals the PrimeTask sidebar
+    // and asks it to scroll-and-highlight the requested task. Bails
+    // silently when the link points at a different vault (multi-vault
+    // protection — without this, clicking a pill in Vault A while Vault
+    // B is also open could land in the wrong workspace).
+    this.registerObsidianProtocolHandler('primetask-focus-task', async (params) => {
+      const targetVault = typeof params.vault === 'string' ? params.vault : '';
+      if (targetVault && targetVault !== this.app.vault.getName()) return;
+      const taskId = typeof params.taskId === 'string' ? params.taskId : '';
+      if (!taskId) return;
+      await this.activateView();
+      // Defer the focus event one tick so the view has a chance to mount
+      // before the listener fires; otherwise the first click after the
+      // sidebar was closed would fall through.
+      window.setTimeout(() => {
+        this.app.workspace.trigger('primetask:focus-task', taskId);
+      }, 50);
     });
 
     // Honor the master sync toggle on load.

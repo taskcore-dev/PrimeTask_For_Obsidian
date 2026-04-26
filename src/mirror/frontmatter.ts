@@ -156,3 +156,103 @@ export function unwrapWikilink(value: unknown): string | null {
 export function asWikilink(name: string): string {
   return `[[${name}]]`;
 }
+
+/**
+ * Apply a partial frontmatter update to an existing file via Obsidian's
+ * official `app.fileManager.processFrontMatter` API. Atomic, plays
+ * nicely with other plugins editing the same file, and produces a
+ * consistent YAML layout. Replaces the older "render new content,
+ * splice YAML in via replaceFrontmatter, vault.modify the whole file"
+ * pattern that the Obsidian community plugin guidelines flag.
+ *
+ * - `data` — keys to set on the frontmatter. `undefined` values are
+ *   skipped (treated as "not present"). `null` values are written as
+ *   empty YAML keys (so Obsidian's typed Properties widgets render
+ *   editable empty fields).
+ * - `keysToManage` — when provided, every listed key is removed from
+ *   the existing frontmatter BEFORE applying `data`. Use this to drop
+ *   PT-managed fields that no longer apply (e.g. `project` when a
+ *   task moves to Inbox). User-added fields outside this list are
+ *   preserved untouched.
+ *
+ * Caller is responsible for marking the file path in `ownWrites` BEFORE
+ * calling this so the vault watcher's echo check knows the resulting
+ * `modify` event was plugin-generated, not a user edit.
+ */
+export async function applyFrontmatter(
+  app: { fileManager: { processFrontMatter: (file: unknown, fn: (fm: Record<string, unknown>) => void) => Promise<void> } },
+  file: unknown,
+  data: Record<string, unknown>,
+  options?: { keysToManage?: readonly string[] },
+): Promise<void> {
+  await app.fileManager.processFrontMatter(file, (fm) => {
+    if (options?.keysToManage) {
+      for (const key of options.keysToManage) {
+        delete fm[key];
+      }
+    }
+    for (const [key, value] of Object.entries(data)) {
+      if (value === undefined) continue;
+      fm[key] = value;
+    }
+  });
+}
+
+/**
+ * Canonical list of frontmatter keys the plugin owns. Pass to
+ * `applyFrontmatter`'s `keysToManage` so a sync clears stale PT fields
+ * before writing the fresh values, instead of letting them linger.
+ * Anything not in this list (user-added properties, custom Bases
+ * fields) is preserved across syncs.
+ */
+export const PT_FRONTMATTER_KEYS_TASK: readonly string[] = [
+  'primetask-id',
+  'primetask-type',
+  'primetask-url',
+  'primetask-parent-id',
+  'space',
+  'project',
+  'origin',
+  'parent',
+  'status',
+  'priority',
+  'due',
+  'progress',
+  'tags',
+  'description',
+  'done',
+  'created_at',
+  'updated_at',
+];
+
+export const PT_FRONTMATTER_KEYS_PROJECT: readonly string[] = [
+  'primetask-id',
+  'primetask-type',
+  'primetask-url',
+  'space',
+  'status',
+  'health',
+  'progress',
+  'task_count',
+  'completed_count',
+  'overdue_count',
+  'deadline',
+  'start_date',
+  'is_archived',
+  'promoted_tasks',
+  'created_at',
+  'updated_at',
+];
+
+export const PT_FRONTMATTER_KEYS_HUB: readonly string[] = [
+  'primetask-id',
+  'primetask-type',
+  'primetask-name',
+  'primetask-space-name',
+  'primetask-url',
+  'space',
+  'is_shared',
+  'mirrored_at',
+  'updated_at',
+  'promoted_tasks',
+];

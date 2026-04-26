@@ -22,7 +22,12 @@ import {
   WidgetType,
 } from '@codemirror/view';
 
-const MARKER_RE = /%%\s*pt:[a-zA-Z0-9_-]+\s*%%|<!--\s*pt:[a-zA-Z0-9_-]+\s*-->/g;
+// Matches:
+//   %%pt:<id>%%                              — task-line capture markers
+//   <!-- pt:<id> -->                         — task-line capture markers (HTML form)
+//   <!-- primetask:promoted-tasks:start -->  — section start marker in project notes
+//   <!-- primetask:promoted-tasks:end -->    — section end marker in project notes
+const MARKER_RE = /%%\s*pt:[a-zA-Z0-9_-]+\s*%%|<!--\s*pt:[a-zA-Z0-9_-]+\s*-->|<!--\s*primetask:[a-z-]+:(?:start|end)\s*-->/g;
 
 class HiddenMarkerWidget extends WidgetType {
   toDOM(): HTMLElement {

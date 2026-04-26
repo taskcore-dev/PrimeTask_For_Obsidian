@@ -201,6 +201,16 @@ export function renderTaskFile(opts: RenderTaskFileOptions): RenderedTaskFile {
     lines.push('');
     lines.push(`Captured from [[${opts.originBasename}]] on ${date}.`);
   }
+  // Project backlink in the body — gives the user a one-click way to
+  // navigate up to the parent project note. Wikilink resolves when the
+  // project is promoted; sits as a dangling reference otherwise (still
+  // shows up in Obsidian's backlinks pane and graph view either way).
+  // Skipped for orphan tasks (no project) and for subtasks (their
+  // project context is already covered through the parent task).
+  if (!isSubtask && opts.project) {
+    lines.push('');
+    lines.push(`Part of [[${safeFilename(opts.project.name)}]].`);
+  }
   lines.push('');
   // Leave a single blank line after the header region so the user's cursor
   // lands on a natural editing position when the file is opened.
@@ -435,18 +445,7 @@ export function injectLineAfterH1(body: string, lineToInsert: string): string {
   return `${body.slice(0, insertAt)}\n\n${lineToInsert}${tail}`;
 }
 
-export function replaceFrontmatter(originalContent: string, newFrontmatter: Record<string, unknown>): string {
-  const fmBlock = stringifyFrontmatter(newFrontmatter).trimEnd();
-  const lines = originalContent.split('\n');
-  if (lines.length > 0 && /^---\s*$/.test(lines[0])) {
-    let end = -1;
-    for (let i = 1; i < lines.length; i++) {
-      if (/^---\s*$/.test(lines[i])) { end = i; break; }
-    }
-    if (end !== -1) {
-      const body = lines.slice(end + 1).join('\n');
-      return `${fmBlock}\n${body}`;
-    }
-  }
-  return `${fmBlock}\n${originalContent}`;
-}
+// `replaceFrontmatter` was retired in v0.1.1 after the migration to
+// `app.fileManager.processFrontMatter`, the official atomic API for
+// editing frontmatter on existing files. New code should use the
+// `applyFrontmatter` helper in `frontmatter.ts` instead.

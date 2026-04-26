@@ -15,8 +15,10 @@ import type PrimeTaskPlugin from '../main';
 import { SpaceMismatchError, type PrimeTaskPriority, type PrimeTaskProject, type PrimeTaskSpace, type PrimeTaskStatus, type PrimeTaskTask } from '../api/client';
 import { generateMirror } from './generator';
 import { parseMirrorFile, extractProjectId } from './parser';
-import { renderTaskFile, dedupeFilename, extractTaskSnapshot, replaceFrontmatter, stripDescriptionHtml, datetimesEqual, toIsoUtc } from './taskFile';
+import { renderTaskFile, dedupeFilename, extractTaskSnapshot, stripDescriptionHtml, datetimesEqual, toIsoUtc } from './taskFile';
+import type { PromotedTaskItem } from './projectFile';
 import { safeFilename } from './markdown';
+import { getNormalisedMirrorFolder } from '../settings';
 import { DEFAULT_MIRROR_STATE, type MirrorFileState, type MirrorState } from './types';
 
 const MIRROR_STATE_KEY = 'mirrorState';
@@ -478,11 +480,12 @@ export class MirrorManager {
       if (!differs) continue;
 
       try {
-        // Read current file + parse existing frontmatter so we preserve
-        // created_at (which MUST be immutable after the initial promote)
-        // and can detect whether the resulting YAML actually differs.
+        // Read existing frontmatter only so we can preserve created_at
+        // (immutable after the initial promote). Body content is left
+        // entirely untouched — task-note bodies are user-owned long-form
+        // notes, the plugin never rewrites them after creation.
+        const { parseFrontmatter, applyFrontmatter, PT_FRONTMATTER_KEYS_TASK } = await import('./frontmatter');
         const currentContent = await this.plugin.app.vault.read(file);
-        const { parseFrontmatter } = await import('./frontmatter');
         const currentFm = parseFrontmatter(currentContent).data;
         const preservedCreatedAt =
           typeof currentFm['created_at'] === 'string'
@@ -510,10 +513,14 @@ export class MirrorManager {
           parentFileStem: parentPromotedFile?.basename ?? null,
         });
         const fmData = parseFrontmatter(rendered.content).data;
-        const nextContent = replaceFrontmatter(currentContent, fmData);
-        if (nextContent === currentContent) continue;
+        // Mark the file as a plugin-owned write BEFORE the API call —
+        // processFrontMatter triggers a vault `modify` event, and the
+        // watcher's echo check needs the mark in place to skip
+        // reconciling. Doing it after the call would race the event.
         this.ownWrites.set(filePath, Date.now());
-        await this.plugin.app.vault.modify(file, nextContent);
+        await applyFrontmatter(this.plugin.app, file, fmData, {
+          keysToManage: PT_FRONTMATTER_KEYS_TASK,
+        });
         state.frontmatterSnapshot = serverSnapshot;
         // Keep the persisted type in sync with whether a parent now exists.
         // Handles the edge case of a task gaining / losing a parent server-
@@ -549,9 +556,21 @@ export class MirrorManager {
     if (projectFilePaths.length === 0) return;
 
     const lockedSpace = this.plugin.spaces.find((s) => s.id === lockedSpaceId);
-    const { renderProjectFile, renderPromotedTasksBlock, PROMOTED_TASKS_MARKER_START, PROMOTED_TASKS_MARKER_END } = await import('./projectFile');
+    const { renderProjectFile, PROMOTED_TASKS_MARKER_START } = await import('./projectFile');
     const { parseFrontmatter } = await import('./frontmatter');
-    const { replaceFrontmatter, replaceBodyBlock } = await import('./taskFile');
+
+    // Status config for the locked space — used to resolve each task's
+    // status id to a friendly name + isComplete flag for the project
+    // note's clickable status pills. Single fetch per project-file pass;
+    // empty fallback is fine (pills will show raw status id, no glyph).
+    const client = this.plugin.connection.getClient();
+    const statuses = await client
+      .listStatuses({ spaceId: lockedSpaceId })
+      .catch((): PrimeTaskStatus[] => []);
+    const statusInfoById = new Map<string, { name: string; isComplete: boolean }>(
+      statuses.map((s) => [s.id, { name: s.name, isComplete: !!s.is_complete }]),
+    );
+    const vaultName = this.plugin.app.vault.getName();
 
     // Flatten the task tree once so the project → promoted-tasks lookup
     // can check project membership in O(n) per project.
@@ -582,14 +601,25 @@ export class MirrorManager {
       if (!(file instanceof TFile)) continue;
       const state = this.state.files[filePath];
 
-      // Every task in this project that is itself a promoted note.
-      const promotedTaskStems: string[] = [];
+      // Every task in this project that is itself a promoted note. Each
+      // entry carries the status name (rendered as the clickable link
+      // text) plus the complete flag (used only for the diff
+      // signature so a status flip triggers a re-render).
+      type PromotedItem = { stem: string; taskId: string; statusName: string; isComplete: boolean };
+      const promotedTasks: PromotedItem[] = [];
       for (const t of flatTasks) {
         if (t.projectId !== project.id) continue;
         const stem = promotedTaskIdToStem.get(t.id);
-        if (stem) promotedTaskStems.push(stem);
+        if (!stem) continue;
+        const info = statusInfoById.get(t.status);
+        promotedTasks.push({
+          stem,
+          taskId: t.id,
+          statusName: info?.name ?? t.status,
+          isComplete: info?.isComplete ?? false,
+        });
       }
-      promotedTaskStems.sort();
+      promotedTasks.sort((a, b) => a.stem.localeCompare(b.stem));
 
       const serverSnapshot = {
         status: project.status,
@@ -603,13 +633,35 @@ export class MirrorManager {
         deadline: project.deadline ?? null,
         startDate: project.startDate ?? null,
         isArchived: !!project.isArchived,
-        promotedTasks: promotedTaskStems,
+        // Stems-only persisted on the snapshot (back-compat with
+        // ProjectFrontmatterSnapshot type). The richer per-task status
+        // info is captured in the diff signature below.
+        promotedTasks: promotedTasks.map((t) => t.stem),
       };
 
       const previous = state.projectSnapshot ?? {};
       const norm = (v: unknown): unknown => (v === null ? undefined : v);
-      const stemsKey = (arr: string[] | undefined): string =>
+      // Diff signature: stems-plus-status. Earlier version compared stems
+      // only, which meant a status change on an already-promoted task
+      // didn't trigger a project-note rewrite (the stems list looked
+      // unchanged), so the pill stayed stale until the user re-promoted
+      // something. Including the status name + complete flag here makes
+      // the project note refresh on any pill change.
+      const tasksKey = (arr: PromotedItem[]): string =>
+        arr.slice()
+          .sort((a, b) => a.stem.localeCompare(b.stem))
+          .map((t) => `${t.stem}#${t.statusName}#${t.isComplete ? 1 : 0}`)
+          .join('|');
+      const previousStemsKey = (arr: string[] | undefined): string =>
         (arr ?? []).slice().sort().join('|');
+      const currentTasksKey = tasksKey(promotedTasks);
+      // The previous snapshot only persists stems, so for the cross-poll
+      // diff we conservatively trigger a rewrite if either (a) the stems
+      // list itself changed or (b) we never persisted a task-level
+      // signature before. After the first rewrite the new pill content
+      // is in the file; from then on the diff catches status flips
+      // through the in-memory `lastTasksKey` cached on state.
+      const previousTasksKey: string = state.projectTasksKey ?? previousStemsKey(previous.promotedTasks);
 
       const differs =
         norm(previous.status) !== norm(serverSnapshot.status) ||
@@ -621,11 +673,30 @@ export class MirrorManager {
         !datetimesEqual(previous.deadline ?? null, serverSnapshot.deadline ?? null) ||
         !datetimesEqual(previous.startDate ?? null, serverSnapshot.startDate ?? null) ||
         (previous.isArchived ?? false) !== (serverSnapshot.isArchived ?? false) ||
-        stemsKey(previous.promotedTasks) !== stemsKey(serverSnapshot.promotedTasks);
-      if (!differs) continue;
+        previousTasksKey !== currentTasksKey;
+
+      // Self-healing for the case where the user accidentally deleted
+      // the marker-bounded promoted-tasks section (or the surrounding
+      // `---` rules). Read the file once, check whether the start
+      // marker is still there, and force a rewrite when it's missing —
+      // even if no server-side fields changed since the last poll.
+      // `replaceBodyBlock` already handles the missing-marker case by
+      // appending the regenerated section at the end of the file with
+      // a blank-line separator, so the user gets their section back
+      // automatically on the next ~5s poll cycle without having to
+      // touch the project in PrimeTask.
+      let currentContent: string;
+      try {
+        currentContent = await this.plugin.app.vault.read(file);
+      } catch (err) {
+        console.warn('[PrimeTask] Failed to read project file', filePath, err);
+        continue;
+      }
+      const sectionMissing = !currentContent.includes(PROMOTED_TASKS_MARKER_START);
+      if (!differs && !sectionMissing) continue;
 
       try {
-        const currentContent = await this.plugin.app.vault.read(file);
+        const { applyFrontmatter, PT_FRONTMATTER_KEYS_PROJECT } = await import('./frontmatter');
         const currentFm = parseFrontmatter(currentContent).data;
         const preservedCreatedAt =
           typeof currentFm['created_at'] === 'string'
@@ -637,31 +708,89 @@ export class MirrorManager {
           spaceName: lockedSpace?.name ?? null,
           spaceId: lockedSpaceId,
           createdAt: preservedCreatedAt,
-          promotedTaskStems,
+          promotedTasks,
+          vaultName,
         });
         const fmData = parseFrontmatter(rendered.content).data;
-        // Frontmatter regen (always). Body: only the marker-bounded
-        // "Promoted tasks" block is owned by the plugin; everything
-        // else the user wrote stays verbatim.
-        let nextContent = replaceFrontmatter(currentContent, fmData);
-        nextContent = replaceBodyBlock(
-          nextContent,
-          PROMOTED_TASKS_MARKER_START,
-          PROMOTED_TASKS_MARKER_END,
-          renderPromotedTasksBlock(promotedTaskStems),
-        );
-        if (nextContent === currentContent) {
-          state.projectSnapshot = serverSnapshot;
-          continue;
-        }
+
+        // Step 1 — frontmatter via the official atomic API. Doesn't
+        // touch body content, plays nicely with other plugins editing
+        // the same file's properties (Bases, Dataview, etc.).
         this.ownWrites.set(filePath, Date.now());
-        await this.plugin.app.vault.modify(file, nextContent);
+        await applyFrontmatter(this.plugin.app, file, fmData, {
+          keysToManage: PT_FRONTMATTER_KEYS_PROJECT,
+        });
+
+        // Step 2 — marker-bounded body section. processFrontMatter
+        // doesn't help here because it owns YAML only; we need to
+        // rewrite the in-body promoted-tasks block. Use vault.process
+        // (atomic) instead of vault.modify (race-prone) — the
+        // background-edit best practice for files that may not be
+        // currently open in an editor.
+        const bodyChanged = await this.applyProjectBodyUpdate(file, {
+          promotedTasks,
+          vaultName,
+          sectionMissing,
+        });
+
+        // Body or frontmatter actually wrote something — update the
+        // diff snapshots so subsequent polls don't re-trigger. We
+        // optimistically update both even if only one changed; both
+        // were derived from the same `serverSnapshot`.
+        if (bodyChanged) {
+          this.ownWrites.set(filePath, Date.now());
+        }
         state.projectSnapshot = serverSnapshot;
+        state.projectTasksKey = currentTasksKey;
       } catch (err) {
         console.warn('[PrimeTask] Failed to pull frontmatter update for project', project.id, err);
       }
     }
     await this.saveState();
+  }
+
+  /**
+   * Update the marker-bounded "Promoted tasks" section in a project
+   * note via `vault.process` — atomic and race-safe, the recommended
+   * API for editing files that aren't currently open in an editor.
+   * Returns true when the body actually changed (so the caller can
+   * mark a fresh ownWrite stamp); false on no-op.
+   *
+   * Self-healing: when `sectionMissing` is true, a `---` divider is
+   * appended after the regenerated section so users still get the
+   * "type below this rule" cue they would have got on initial write.
+   */
+  private async applyProjectBodyUpdate(
+    file: TFile,
+    opts: { promotedTasks: PromotedTaskItem[]; vaultName: string; sectionMissing: boolean },
+  ): Promise<boolean> {
+    const { renderPromotedTasksBlock, PROMOTED_TASKS_MARKER_START, PROMOTED_TASKS_MARKER_END } =
+      await import('./projectFile');
+    const { replaceBodyBlock } = await import('./taskFile');
+
+    let changed = false;
+    await this.plugin.app.vault.process(file, (current) => {
+      let next = replaceBodyBlock(
+        current,
+        PROMOTED_TASKS_MARKER_START,
+        PROMOTED_TASKS_MARKER_END,
+        renderPromotedTasksBlock(opts.promotedTasks, opts.vaultName),
+      );
+      if (opts.sectionMissing) {
+        const tail = `${PROMOTED_TASKS_MARKER_END}\n`;
+        if (next.endsWith(tail)) {
+          next = `${next}\n---\n\n`;
+        } else if (!next.includes(`${PROMOTED_TASKS_MARKER_END}\n\n---`)) {
+          next = next.replace(
+            `${PROMOTED_TASKS_MARKER_END}\n`,
+            `${PROMOTED_TASKS_MARKER_END}\n\n---\n\n`,
+          );
+        }
+      }
+      changed = next !== current;
+      return next;
+    });
+    return changed;
   }
 
   private resolveDoneStatusId(): string | null {
@@ -687,15 +816,16 @@ export class MirrorManager {
     stripHashtag: boolean,
   ): Promise<void> {
     try {
-      const content = await this.plugin.app.vault.read(file);
-      const lines = content.split(/\r?\n/);
-      if (lineNumber < 0 || lineNumber >= lines.length) return;
-      let line = lines[lineNumber];
-      if (/%%\s*pt:[a-zA-Z0-9_-]+\s*%%/.test(line)) return; // already has one
-      if (stripHashtag) line = line.replace(/\s*#primetask\s*$/i, '');
-      lines[lineNumber] = `${line.replace(/\s+$/, '')} %%pt:${taskId}%%`;
       this.ownWrites.set(file.path, Date.now());
-      await this.plugin.app.vault.modify(file, lines.join('\n'));
+      await this.plugin.app.vault.process(file, (content) => {
+        const lines = content.split(/\r?\n/);
+        if (lineNumber < 0 || lineNumber >= lines.length) return content;
+        let line = lines[lineNumber];
+        if (/%%\s*pt:[a-zA-Z0-9_-]+\s*%%/.test(line)) return content; // already has one
+        if (stripHashtag) line = line.replace(/\s*#primetask\s*$/i, '');
+        lines[lineNumber] = `${line.replace(/\s+$/, '')} %%pt:${taskId}%%`;
+        return lines.join('\n');
+      });
     } catch (err) {
       console.warn('[PrimeTask] failed to finalize created line', err);
     }
@@ -830,7 +960,7 @@ export class MirrorManager {
         originBasename: sourceFile.basename,
       });
 
-      const mirrorRoot = (this.plugin.settings.mirrorFolder || 'PrimeTask').replace(/\/+$/, '');
+      const mirrorRoot = getNormalisedMirrorFolder(this.plugin.settings);
       await this.ensureFolder(mirrorRoot);
       await this.ensureFolder(`${mirrorRoot}/Tasks`);
 
@@ -989,7 +1119,7 @@ export class MirrorManager {
         parentFileStem: parentPromotedFile?.basename ?? null,
       });
 
-      const mirrorRoot = (this.plugin.settings.mirrorFolder || 'PrimeTask').replace(/\/+$/, '');
+      const mirrorRoot = getNormalisedMirrorFolder(this.plugin.settings);
       await this.ensureFolder(mirrorRoot);
       await this.ensureFolder(`${mirrorRoot}/Tasks`);
 
@@ -1107,10 +1237,11 @@ export class MirrorManager {
         spaceId: lockedSpaceId,
         // No promoted tasks yet at creation — the space hub + future
         // poll-update populate this list as tasks get promoted.
-        promotedTaskStems: [],
+        promotedTasks: [],
+        vaultName: this.plugin.app.vault.getName(),
       });
 
-      const mirrorRoot = (this.plugin.settings.mirrorFolder || 'PrimeTask').replace(/\/+$/, '');
+      const mirrorRoot = getNormalisedMirrorFolder(this.plugin.settings);
       await this.ensureFolder(mirrorRoot);
       await this.ensureFolder(`${mirrorRoot}/Projects`);
 
@@ -1305,8 +1436,8 @@ export class MirrorManager {
       return null;
     }
 
-    const { parseFrontmatter } = await import('./frontmatter');
-    const { replaceFrontmatter, replaceBodyBlock, injectLineAfterH1 } = await import('./taskFile');
+    const { parseFrontmatter, applyFrontmatter, PT_FRONTMATTER_KEYS_TASK, PT_FRONTMATTER_KEYS_PROJECT } = await import('./frontmatter');
+    const { replaceBodyBlock, injectLineAfterH1 } = await import('./taskFile');
     const {
       renderPromotedTasksBlock,
       PROMOTED_TASKS_MARKER_START,
@@ -1352,7 +1483,6 @@ export class MirrorManager {
     try {
       const client = this.plugin.connection.getClient();
       const lockedSpace = this.plugin.spaces.find((s) => s.id === lockedSpaceId);
-      let nextContent: string;
       let snapshotType: 'task' | 'project';
 
       if (kind === 'task') {
@@ -1404,16 +1534,25 @@ export class MirrorManager {
           originBasename: null,
         });
         const fmData = parseFrontmatter(rendered.content).data;
-        // Merge: preserve user's non-PrimeTask frontmatter keys; our keys
-        // win on overlap (they're the ones we sync).
-        const merged = this.mergeFrontmatter(parsed.data, fmData);
-        nextContent = replaceFrontmatter(currentContent, merged);
-        // Inject the "[Open in PrimeTask]" deep link into the body right
-        // after the H1 so the converted note carries the same affordance
-        // as a freshly promoted task note.
-        const deepLink = typeof fmData['primetask-url'] === 'string' ? fmData['primetask-url'] : null;
-        if (deepLink) {
-          nextContent = injectLineAfterH1(nextContent, `[Open in PrimeTask](${deepLink})`);
+        const deepLinkTask = typeof fmData['primetask-url'] === 'string' ? fmData['primetask-url'] : null;
+
+        // Frontmatter via the official atomic API. PT-managed keys are
+        // overwritten; user-added keys outside our owned set are
+        // preserved automatically by processFrontMatter.
+        this.ownWrites.set(file.path, Date.now());
+        await applyFrontmatter(this.plugin.app, file, fmData, {
+          keysToManage: PT_FRONTMATTER_KEYS_TASK,
+        });
+
+        // Body — inject the "[Open in PrimeTask]" deep link right
+        // after the H1 so the converted note carries the same
+        // affordance as a freshly promoted task note. vault.process
+        // is atomic and race-safe for files not currently open.
+        if (deepLinkTask) {
+          this.ownWrites.set(file.path, Date.now());
+          await this.plugin.app.vault.process(file, (current) =>
+            injectLineAfterH1(current, `[Open in PrimeTask](${deepLinkTask})`),
+          );
         }
         snapshotType = 'task';
 
@@ -1464,26 +1603,37 @@ export class MirrorManager {
           project: projectStub,
           spaceName: lockedSpace?.name ?? null,
           spaceId: lockedSpaceId,
-          promotedTaskStems: [],
+          promotedTasks: [],
+          vaultName: this.plugin.app.vault.getName(),
         });
         const fmData = parseFrontmatter(rendered.content).data;
-        const merged = this.mergeFrontmatter(parsed.data, fmData);
-        nextContent = replaceFrontmatter(currentContent, merged);
-        // Inject the "[Open in PrimeTask]" link + the marker-bounded
-        // "Promoted tasks" block into the user's existing body. Link
-        // sits right after the H1; the block appends to the body (user
-        // content above/below stays intact). Subsequent poll refreshes
-        // only rewrite the bounded block, never the user's own content.
-        const deepLink = typeof fmData['primetask-url'] === 'string' ? fmData['primetask-url'] : null;
-        if (deepLink) {
-          nextContent = injectLineAfterH1(nextContent, `[Open in PrimeTask](${deepLink})`);
-        }
-        nextContent = replaceBodyBlock(
-          nextContent,
-          PROMOTED_TASKS_MARKER_START,
-          PROMOTED_TASKS_MARKER_END,
-          renderPromotedTasksBlock([]),
-        );
+        const deepLinkProject = typeof fmData['primetask-url'] === 'string' ? fmData['primetask-url'] : null;
+
+        // Frontmatter via the official atomic API.
+        this.ownWrites.set(file.path, Date.now());
+        await applyFrontmatter(this.plugin.app, file, fmData, {
+          keysToManage: PT_FRONTMATTER_KEYS_PROJECT,
+        });
+
+        // Body — inject the deep link AND the marker-bounded
+        // "Promoted tasks" section in a single vault.process call so
+        // both edits land atomically. Subsequent poll refreshes only
+        // rewrite the bounded block, never the user's own content
+        // above/below.
+        this.ownWrites.set(file.path, Date.now());
+        await this.plugin.app.vault.process(file, (current) => {
+          let next = current;
+          if (deepLinkProject) {
+            next = injectLineAfterH1(next, `[Open in PrimeTask](${deepLinkProject})`);
+          }
+          next = replaceBodyBlock(
+            next,
+            PROMOTED_TASKS_MARKER_START,
+            PROMOTED_TASKS_MARKER_END,
+            renderPromotedTasksBlock([], this.plugin.app.vault.getName()),
+          );
+          return next;
+        });
         snapshotType = 'project';
 
         this.state.files[file.path] = {
@@ -1507,8 +1657,10 @@ export class MirrorManager {
         };
       }
 
-      this.ownWrites.set(file.path, Date.now());
-      await this.plugin.app.vault.modify(file, nextContent);
+      // Frontmatter + body have already been written via
+      // applyFrontmatter / vault.process inside each branch above.
+      // Just persist the new state entry the branch added to
+      // this.state.files and notify listeners.
       await this.saveState();
 
       new Notice(`Converted note to PrimeTask ${snapshotType}: ${name}`);
@@ -1522,39 +1674,6 @@ export class MirrorManager {
       new Notice(`Convert failed: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
-  }
-
-  /**
-   * Merge user's existing frontmatter with plugin-generated frontmatter.
-   * PrimeTask-specific keys (primetask-*, status, priority, due, etc) are
-   * overwritten by the plugin's values; other keys the user had (aliases,
-   * cssclasses, custom properties) are preserved untouched.
-   */
-  private mergeFrontmatter(
-    existing: Record<string, unknown>,
-    ours: Record<string, unknown>,
-  ): Record<string, unknown> {
-    // Keys we own — we always set these from ours, never from the user.
-    const ownedKeys = new Set<string>([
-      'primetask-id', 'primetask-type', 'primetask-url', 'primetask-parent-id',
-      'space', 'project', 'parent', 'origin',
-      'status', 'priority', 'due', 'progress', 'tags', 'description', 'done',
-      'health', 'task_count', 'completed_count', 'overdue_count',
-      'deadline', 'start_date', 'is_archived',
-      'promoted_tasks', 'promoted_projects',
-      'created_at', 'updated_at', 'mirrored_at',
-      'is_shared',
-    ]);
-    const merged: Record<string, unknown> = {};
-    // Start with user's non-owned keys so their ordering is preserved.
-    for (const [k, v] of Object.entries(existing)) {
-      if (!ownedKeys.has(k)) merged[k] = v;
-    }
-    // Layer our keys on top.
-    for (const [k, v] of Object.entries(ours)) {
-      merged[k] = v;
-    }
-    return merged;
   }
 
   /**

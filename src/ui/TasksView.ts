@@ -30,6 +30,11 @@ interface FilterState {
    *   - 'promoted': only tasks WITH a note file
    */
   noteFilter: NoteFilter;
+  /** When true, archived projects are hidden from the Projects tab.
+   *  Default true — most users archive projects to clear visual noise
+   *  and want them gone from the default view. The eye-toggle next to
+   *  the existing "show done" button flips this. */
+  hideArchived: boolean;
 }
 
 export class TasksView extends ItemView {
@@ -44,7 +49,7 @@ export class TasksView extends ItemView {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private expandedTaskIds = new Set<string>();
   private expandedProjectIds = new Set<string>();
-  private filters: FilterState = { due: 'all', projectId: null, showDone: false, search: '', noteFilter: 'all' };
+  private filters: FilterState = { due: 'all', projectId: null, showDone: false, search: '', noteFilter: 'all', hideArchived: true };
   private searchInputRef: HTMLInputElement | null = null;
   /** Persistent DOM hosts for the split-render pattern. Header and body
    *  live in separate slots so poll-only updates (task data changed, tab
@@ -55,6 +60,13 @@ export class TasksView extends ItemView {
   private bodyHost: HTMLElement | null = null;
   private lastHeaderFingerprint: string | null = null;
   private lastBodyFingerprint: string | null = null;
+  /** Set by the `primetask:focus-task` workspace event when a user
+   *  clicks a status pill in a project note. The next render reads this
+   *  to (a) switch to the Tasks tab if needed, (b) expand any collapsed
+   *  parents on the path to the target, (c) scroll the target row into
+   *  view, (d) apply a brief flash highlight, then clear the field. */
+  private pendingFocusTaskId: string | null = null;
+  private focusTaskListener: ((taskId: string) => void) | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: PrimeTaskPlugin) {
     super(leaf);
@@ -85,6 +97,17 @@ export class TasksView extends ItemView {
     // the user edits a mirrored file (instead of waiting up to 5s for the next poll).
     this.refreshListener = () => { this.refresh().catch(() => {}); };
     this.plugin.app.workspace.on('primetask:refresh' as any, this.refreshListener);
+
+    // Listen for focus requests fired by the obsidian:// status-pill
+    // protocol handler. When a user clicks a status pill inside a
+    // project note, the click reveals this view and then dispatches
+    // this event with the task id. We expand any collapsed parents on
+    // the path, switch to the Tasks tab, scroll the row into view, and
+    // flash it so the user sees where they landed.
+    this.focusTaskListener = (taskId: string) => {
+      this.requestFocusTask(taskId);
+    };
+    (this.plugin.app.workspace as any).on('primetask:focus-task', this.focusTaskListener);
   }
 
   async onClose(): Promise<void> {
@@ -95,6 +118,10 @@ export class TasksView extends ItemView {
     if (this.refreshListener) {
       this.plugin.app.workspace.off('primetask:refresh' as any, this.refreshListener);
       this.refreshListener = null;
+    }
+    if (this.focusTaskListener) {
+      (this.plugin.app.workspace as any).off('primetask:focus-task', this.focusTaskListener);
+      this.focusTaskListener = null;
     }
     // Clear the cached host refs so a re-open does a fresh structural build
     // rather than trying to patch DOM that may already have been torn down.
@@ -304,6 +331,74 @@ export class TasksView extends ItemView {
       this.populateBody(this.bodyHost);
       this.lastBodyFingerprint = bodyFp;
     }
+
+    // Resolve any pending status-pill click. Done after the body has
+    // rendered so the target row's DOM exists. Defers to the next
+    // animation frame because Obsidian sometimes batches inserts.
+    if (this.pendingFocusTaskId) {
+      const targetId = this.pendingFocusTaskId;
+      this.pendingFocusTaskId = null;
+      window.requestAnimationFrame(() => this.applyFocusToRow(targetId));
+    }
+  }
+
+  /**
+   * Mark a task id as the next render's scroll-and-highlight target.
+   * Switches to the Tasks tab and expands every parent on the path so
+   * the row is reachable, then triggers a render. Called by the
+   * `primetask:focus-task` workspace event listener.
+   */
+  private requestFocusTask(taskId: string): void {
+    if (!taskId) return;
+    // Walk up the task tree, expanding any collapsed parents on the
+    // path. Without this, a subtask whose parent is collapsed would
+    // have no DOM row to scroll to.
+    const byId = new Map<string, PrimeTaskTask>();
+    const flatten = (list: PrimeTaskTask[]) => {
+      for (const t of list) {
+        byId.set(t.id, t);
+        if (t.subtasks?.length) flatten(t.subtasks);
+      }
+    };
+    flatten(this.tasks);
+    let cursor = byId.get(taskId);
+    while (cursor?.parentId) {
+      this.expandedTaskIds.add(cursor.parentId);
+      cursor = byId.get(cursor.parentId);
+    }
+    // Always land on the Tasks tab — Projects tab groups by project,
+    // which complicates the scroll target. Tasks tab is the canonical
+    // flat list and matches the user's intent (they want to see and
+    // interact with this one task).
+    if (this.currentTab !== 'tasks') {
+      this.currentTab = 'tasks';
+    }
+    this.pendingFocusTaskId = taskId;
+    // Force a body rebuild — fingerprint hasn't changed if the task
+    // data is the same, but we need the DOM in place to apply focus.
+    this.lastBodyFingerprint = null;
+    this.render();
+  }
+
+  /**
+   * Scroll the task row matching the given id into view and apply a
+   * brief flash highlight via CSS class. Silently no-ops when the row
+   * is filtered out (e.g. user has "show done" off and the task is
+   * complete) so the user is not left wondering why the click did
+   * nothing visible.
+   */
+  private applyFocusToRow(taskId: string): void {
+    if (!this.bodyHost) return;
+    const row = this.bodyHost.querySelector(
+      `.primetask-task-row[data-primetask-id="${CSS.escape(taskId)}"]`,
+    ) as HTMLElement | null;
+    if (!row) {
+      new Notice('Task not visible in current filters — clear filters or toggle Show done');
+      return;
+    }
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.addClass('is-focused');
+    window.setTimeout(() => row.removeClass('is-focused'), 1600);
   }
 
   /**
@@ -326,6 +421,7 @@ export class TasksView extends ItemView {
       this.filters.projectId ?? '',
       this.filters.noteFilter,
       this.filters.showDone ? 't' : 'f',
+      this.filters.hideArchived ? 't' : 'f',
       this.filters.search,
       this.loading ? 'l' : '',
       this.lastError ?? '',
@@ -350,7 +446,7 @@ export class TasksView extends ItemView {
       .map((t) => `${t.id}:${t.status}:${t.priority}:${t.dueDate ?? ''}:${t.completionPercentage}:${t.subtaskCount}:${t.projectId ?? ''}`)
       .join(',');
     const projectSig = this.projects
-      .map((p) => `${p.id}:${p.progress}:${p.taskCount}:${p.completedCount}:${p.overdueCount}:${p.health ?? ''}`)
+      .map((p) => `${p.id}:${p.progress}:${p.taskCount}:${p.completedCount}:${p.overdueCount}:${p.health ?? ''}:${p.isArchived ? 'a' : ''}`)
       .join(',');
     const expandedSig = [
       ...[...this.expandedTaskIds].sort(),
@@ -369,6 +465,7 @@ export class TasksView extends ItemView {
       this.filters.projectId ?? '',
       this.filters.noteFilter,
       this.filters.showDone ? 't' : 'f',
+      this.filters.hideArchived ? 't' : 'f',
       this.filters.search,
       taskSig,
       projectSig,
@@ -587,8 +684,8 @@ export class TasksView extends ItemView {
       menu.showAtMouseEvent(evt as MouseEvent);
     });
 
-    // Show done toggle — always last so it stays pinned to the far right
-    // via the filter bar's margin-left rule on icon buttons.
+    // Show done toggle — pinned to the far right via the filter bar's
+    // margin-left rule on icon buttons. Lives on both tabs.
     const doneBtn = bar.createEl('button', { cls: 'primetask-view-filter-iconbtn' });
     if (this.filters.showDone) doneBtn.addClass('is-active');
     doneBtn.setAttr('title', this.filters.showDone ? 'Hide completed' : 'Show completed');
@@ -597,6 +694,22 @@ export class TasksView extends ItemView {
       this.filters.showDone = !this.filters.showDone;
       this.render();
     });
+
+    // Hide archived toggle — Projects tab only. Same eye-on/eye-off
+    // grammar as "show done" so the two share a mental model. Default
+    // is hidden (most users archive projects to clear visual noise).
+    if (this.currentTab === 'projects') {
+      const archivedBtn = bar.createEl('button', { cls: 'primetask-view-filter-iconbtn' });
+      // Active state means "I am revealing archived" (eye open) — flip
+      // the icon when hideArchived is OFF so the toggle reads naturally.
+      if (!this.filters.hideArchived) archivedBtn.addClass('is-active');
+      archivedBtn.setAttr('title', this.filters.hideArchived ? 'Show archived projects' : 'Hide archived projects');
+      setIcon(archivedBtn, this.filters.hideArchived ? 'archive' : 'archive-restore');
+      archivedBtn.addEventListener('click', () => {
+        this.filters.hideArchived = !this.filters.hideArchived;
+        this.render();
+      });
+    }
   }
 
   private populateBody(body: HTMLElement): void {
@@ -651,6 +764,9 @@ export class TasksView extends ItemView {
 
   private renderTaskRow(list: HTMLElement, task: PrimeTaskTask, projectById: Map<string, PrimeTaskProject>, depth: number): void {
     const row = list.createDiv({ cls: 'primetask-task-row' });
+    // Tag the row with its PrimeTask id so the focus-task protocol
+    // handler can find it via querySelector for scroll-and-highlight.
+    row.dataset.primetaskId = task.id;
     if (depth > 0) row.addClass('is-subtask');
     row.style.setProperty('--primetask-indent', `${depth * 18}px`);
 
@@ -824,10 +940,14 @@ export class TasksView extends ItemView {
       return;
     }
 
-    // Apply the shared note-presence filter. Same semantics as the task
-    // side: `promoted` keeps only projects with a note, `unpromoted`
-    // keeps only projects without. `all` leaves the list untouched.
+    // Apply the shared note-presence filter + the projects-tab archive
+    // filter. Note filter: `promoted` keeps only projects with a note,
+    // `unpromoted` keeps only projects without, `all` leaves untouched.
+    // Archive filter: when `hideArchived` is on (default), archived
+    // projects are dropped — the eye toggle in the filter bar reveals
+    // them again.
     const projects = this.projects.filter((p) => {
+      if (this.filters.hideArchived && p.isArchived) return false;
       if (this.filters.noteFilter === 'all') return true;
       const hasNote = this.promotedProjectIds.has(p.id);
       return this.filters.noteFilter === 'promoted' ? hasNote : !hasNote;
@@ -869,7 +989,17 @@ export class TasksView extends ItemView {
 
       // Text column — name + optional description
       const textCol = summary.createDiv({ cls: 'primetask-project-textcol' });
-      textCol.createSpan({ cls: 'primetask-project-name', text: project.name });
+      const nameRow = textCol.createDiv({ cls: 'primetask-project-namerow' });
+      nameRow.createSpan({ cls: 'primetask-project-name', text: project.name });
+      // Archived pill — visible only when revealing archived projects,
+      // so the user can tell at a glance which rows are still active.
+      if (project.isArchived) {
+        nameRow.createSpan({
+          cls: 'primetask-project-archived-pill',
+          text: 'Archived',
+          attr: { title: 'This project is archived in PrimeTask' },
+        });
+      }
       if (project.description && project.description.trim()) {
         const cleaned = stripMarkdown(project.description).trim();
         if (cleaned) {

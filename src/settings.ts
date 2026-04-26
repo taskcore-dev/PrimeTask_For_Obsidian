@@ -1,5 +1,19 @@
-import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting, normalizePath } from 'obsidian';
 import type PrimeTaskPlugin from './main';
+
+/**
+ * Resolve the user's mirror folder setting to a canonical, vault-safe
+ * path. Runs the input through Obsidian's `normalizePath()` which
+ * collapses forward+backward slashes, strips leading/trailing
+ * separators, replaces non-breaking spaces, and applies Unicode NFC
+ * normalisation. Falls back to the default when the setting is empty
+ * or normalises to nothing (e.g. user typed only whitespace / slashes).
+ */
+export function getNormalisedMirrorFolder(settings: PrimeTaskSettings): string {
+  const raw = (settings.mirrorFolder ?? '').trim();
+  const candidate = normalizePath(raw || 'PrimeTask');
+  return candidate || 'PrimeTask';
+}
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
