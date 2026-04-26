@@ -19,15 +19,17 @@ This is why:
 - The marquee flow is **note to task**, not the other way. There is no "push every task into the vault" button, and no way to start a promote from inside PrimeTask itself — that would invert the design.
 - Task notes are **graph nodes**, not checkbox lines. Every promoted task is its own `.md` file with rich frontmatter (status, priority, due date, progress) so Bases and Dataview can query your vault as a personal task database.
 - The vault stays clean by default. Nothing is auto-mirrored. Promotion is always explicit and user-initiated.
-- Every task remembers where it came from, with `origin: [[Source Note]]` in its frontmatter and a `Captured from [[Source Note]]` line in the body.
+- Every task remembers where it came from, with `origin: [[Source Note]]` in its frontmatter and a `Captured from [[Source Note]]` line in the body. No other task manager can do this — Todoist, Linear, ClickUp, even Notion don't give you a wikilink-everywhere backlinks pane on every task. Forever after, each task shows "born inside `[[Monday standup]]`", "decided in `[[Q4 strategy memo]]`", "raised by John in `[[call-2026-04-18]]`".
 
 ## What it does
 
-- **Capture from selection** (the primary flow). Select text inside any note, right-click, and choose **Send selection to PrimeTask and link here** (replaces the selection with a wikilink to a new task note) or **Send selection to PrimeTask** (creates the task without modifying your note).
+- **Capture from selection** (the primary flow). Select text inside any note, right-click, and choose **Send selection to PrimeTask and link here** (heavyweight — replaces the selection with a wikilink to a new task note in your vault) or **Send selection to PrimeTask** (lightweight — creates a task in PrimeTask's Inbox only, no vault file, your note stays untouched).
 - **Convert existing notes.** Right-click anywhere in a note with no selection and choose **Convert note to PrimeTask task** or **Convert note to PrimeTask project**. The note's H1 becomes the title, the body becomes the description, and the file stays exactly where it is.
 - **Live sidebar** showing every task and project in your locked PrimeTask space, with status, priority, due date, and progress inline. Inline pills for quick edits. Right-click any row to promote it into a note when you want one.
 - **Two-way sync on task Properties.** Status, priority, due date, progress, description, and the `done` checkbox all round-trip between Obsidian and PrimeTask.
 - **Project dashboards as notes.** Promoted project notes carry typed Properties (progress, health, task counts, overdue count, deadline, start date, archive state) that match the PrimeTask dashboard exactly and let you filter and sort in Bases.
+- **Query your tasks as a database.** Because every promoted task carries typed frontmatter, Obsidian's built-in **Bases** can render live, filterable, sortable tables of your tasks anywhere in your vault. No plugin install required. Frontmatter edits round-trip back to PrimeTask so editing a Bases table row updates PrimeTask too. Dataview works the same way if you have it installed.
+- **Open in PrimeTask** body link on every promoted note jumps straight to the same item inside PrimeTask, ready for Focus Mode, Gantt, time tracking, or anything else.
 - **Nothing auto-pushed.** Task and project notes only appear when you explicitly promote them. The plugin stays out of your vault until you invite it in.
 
 ## Requirements
