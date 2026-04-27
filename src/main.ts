@@ -550,6 +550,8 @@ export default class PrimeTaskPlugin extends Plugin {
       state.status === 'disabled' ? 'PrimeTask · paused'
       : state.status === 'needs-auth' ? 'PrimeTask · authorize'
       : state.status === 'connected' ? 'PrimeTask'
+      : state.status === 'paused' ? 'PrimeTask · paused'
+      : state.status === 'locked' ? 'PrimeTask · locked'
       : 'PrimeTask offline';
     this.statusBarEl.createSpan({ cls: 'primetask-status-label', text: label });
 
@@ -569,6 +571,12 @@ export default class PrimeTaskPlugin extends Plugin {
     }
     if (s.status === 'connecting') {
       return `Connecting to PrimeTask on port ${s.port}...`;
+    }
+    if (s.status === 'locked') {
+      return 'PrimeTask is locked. Unlock the desktop app to resume sync.';
+    }
+    if (s.status === 'paused') {
+      return s.lastError ?? 'Paused from PrimeTask Connected Plugins.';
     }
     return s.lastError
       ? `PrimeTask offline: ${s.lastError}`

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.2
+
+Second round of beta-tester feedback fixes — clearer status when the desktop app is locked, faster authorise flow, and clickable tag chips in the sidebar.
+
+### Added
+
+- **"PrimeTask is locked" status indicator.** When the desktop app is on its lock/PIN screen, the plugin now shows a clear "PrimeTask is locked" message in the sidebar and status bar instead of the generic "PrimeTask is offline" text. Pairs with a desktop-side change in PrimeTask v0.6.4: the local API server stays running while locked but refuses every endpoint with HTTP 423 and reports `locked: true` from `/ping` so the plugin can distinguish "locked" from "the app is closed".
+- **Typed `LockedError` from the API client.** Subsequent authenticated calls that hit a 423 response throw a typed error and converge the connection state to `locked` immediately, without waiting for the next `/ping` cycle.
+- **Clickable tag chips in the sidebar task list.** Click any `#tag` chip on a task row to seed Obsidian's global search with `tag:#<name>` — finds every note carrying that tag (promoted task notes write the tag list into YAML frontmatter, which Obsidian indexes natively). Multi-word tag names are quoted automatically. Tag editing still happens in PrimeTask; the chips are read-only display + navigation surfaces.
+
+### Changed
+
+- The status bar reads `PrimeTask · locked` and the sidebar empty state suggests unlocking the desktop app rather than restarting it.
+
 ## v0.1.1
 
 First round of beta-tester feedback fixes plus a community-plugin compliance pass.

@@ -1014,16 +1014,24 @@
   color: var(--text-faint);
 }
 
-/* Tag chip — inline #name text in the task row meta. Read-only from the
-   plugin's perspective; tags are edited in PrimeTask, we just display. */
+/* Tag chip — plain inline #name text. Click to seed Obsidian's global
+   search with `tag:#name`. Tag editing still happens in PrimeTask. */
 .primetask-task-tag {
   color: var(--text-muted);
   font-size: 0.9em;
-  opacity: 0.8;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.primetask-task-tag:hover,
+.primetask-task-tag:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+  outline: none;
 }
 
 .primetask-task-tag:not(:last-child) {
-  margin-right: 2px;
+  margin-right: 4px;
 }
 
 .primetask-task-note-badge {

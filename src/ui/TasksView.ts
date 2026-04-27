@@ -6,6 +6,7 @@ import type {
   PrimeTaskStatus,
   PrimeTaskPriority,
 } from '../api/client';
+import { LockedError } from '../api/client';
 import { CreateTaskModal } from './CreateTaskModal';
 
 export const PRIMETASK_VIEW_TYPE = 'primetask-view';
@@ -146,17 +147,34 @@ export class TasksView extends ItemView {
       // this scoping the sidebar shows the active space's tasks while the
       // mirror folder mirrors the locked space — confusing inconsistency.
       const lockedSpaceId = this.plugin.settings.defaultSpaceId ?? undefined;
+      // Per-call .catch returns a sentinel `null` for any non-Locked error so
+      // we use whatever data we got. LockedError is rethrown so the outer
+      // catch can detect "the desktop app is locked" and preserve the cached
+      // data instead of wiping the sidebar to an empty state.
+      const reraiseLocked = <T>(fallback: T) => (err: unknown): T => {
+        if (err instanceof LockedError) throw err;
+        return fallback;
+      };
       const [tasks, projects, statuses, priorities] = await Promise.all([
-        client.listTasks({ spaceId: lockedSpaceId }).catch((err) => { this.lastError = err instanceof Error ? err.message : String(err); return [] as PrimeTaskTask[]; }),
-        client.listProjects({ spaceId: lockedSpaceId }).catch(() => [] as PrimeTaskProject[]),
-        client.listStatuses({ spaceId: lockedSpaceId }).catch(() => [] as PrimeTaskStatus[]),
-        client.listPriorities({ spaceId: lockedSpaceId }).catch(() => [] as PrimeTaskPriority[]),
+        client.listTasks({ spaceId: lockedSpaceId }).catch((err) => {
+          if (err instanceof LockedError) throw err;
+          this.lastError = err instanceof Error ? err.message : String(err);
+          return [] as PrimeTaskTask[];
+        }),
+        client.listProjects({ spaceId: lockedSpaceId }).catch(reraiseLocked([] as PrimeTaskProject[])),
+        client.listStatuses({ spaceId: lockedSpaceId }).catch(reraiseLocked([] as PrimeTaskStatus[])),
+        client.listPriorities({ spaceId: lockedSpaceId }).catch(reraiseLocked([] as PrimeTaskPriority[])),
       ]);
       this.tasks = tasks;
       this.projects = projects;
       this.statuses = statuses;
       this.priorities = priorities;
       this.lastError = null;
+    } catch (err) {
+      // Locked: keep the cached tasks/projects intact so the sidebar can
+      // either show them or render the locked empty state without flashing
+      // a misleading "no tasks found" message in between.
+      if (!(err instanceof LockedError)) throw err;
     } finally {
       this.loading = false;
       this.render();
@@ -725,6 +743,15 @@ export class TasksView extends ItemView {
       return;
     }
 
+    if (state.status === 'locked') {
+      this.renderEmptyState(
+        body,
+        'PrimeTask is locked',
+        'Unlock the desktop app (lock screen) and the plugin will reconnect automatically.',
+      );
+      return;
+    }
+
     if (state.status !== 'connected') {
       this.renderEmptyState(body, 'PrimeTask is offline', 'Launch the desktop app. The plugin will reconnect automatically.');
       return;
@@ -865,20 +892,41 @@ export class TasksView extends ItemView {
       meta.createSpan({ cls: 'primetask-task-subtasks', text: `${task.subtaskCount} subtask${task.subtaskCount === 1 ? '' : 's'}` });
     }
 
-    // Tag chips — read-only from Obsidian's side. Shows each tag as a
-    // small `#name` pill. Color from the server if present (tags are
-    // typed entities in PrimeTask with an optional accent); otherwise
-    // falls back to the muted neutral style via the CSS class.
+    // Tag chips. Click a chip to seed Obsidian's global search with
+    // `tag:#<name>` so the user can find every note carrying the tag
+    // (promoted task notes write the tag list into frontmatter, which
+    // Obsidian indexes natively). Tag editing still happens in
+    // PrimeTask — these are read-only display chips, just navigable.
     if (task.tags && task.tags.length > 0) {
       for (const tag of task.tags) {
         if (!tag?.name) continue;
-        const chip = meta.createSpan({ cls: 'primetask-task-tag', text: `#${tag.name}` });
+        // Plain span — keeps the same look as before (just colored
+        // text). `role="button"` + tabindex for keyboard accessibility.
+        // Avoids Obsidian's default <button> chrome (background, border,
+        // padding) which renders as ugly boxes around each tag.
+        const chip = meta.createSpan({
+          cls: 'primetask-task-tag',
+          text: `#${tag.name}`,
+          attr: {
+            role: 'button',
+            tabindex: '0',
+            'aria-label': `Search vault for tag ${tag.name}`,
+          },
+        });
         if (tag.color) {
-          // Use the server's color as the chip accent. Keep the text
-          // readable by letting the CSS opacity/contrast rules do the
-          // heavy lifting — just set the background color inline.
           chip.style.color = tag.color;
         }
+        const trigger = (e: Event) => {
+          e.stopPropagation();
+          this.openTagSearch(tag.name);
+        };
+        chip.addEventListener('click', trigger);
+        chip.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            trigger(e);
+          }
+        });
       }
     }
 
@@ -1077,6 +1125,30 @@ export class TasksView extends ItemView {
     const wrap = root.createDiv({ cls: 'primetask-view-empty' });
     wrap.createDiv({ cls: 'primetask-view-empty-title', text: title });
     wrap.createDiv({ cls: 'primetask-view-empty-desc', text: description });
+  }
+
+  /**
+   * Open Obsidian's global search prefilled with `tag:#<name>`. Promoted
+   * task notes carry the PrimeTask tag list in YAML frontmatter, which
+   * Obsidian indexes as native tags, so the search lands on every note
+   * carrying the tag. Falls back to a Notice when the global-search
+   * internal plugin isn't available (e.g. user disabled it).
+   */
+  private openTagSearch(tagName: string): void {
+    const trimmed = (tagName || '').trim();
+    if (!trimmed) return;
+    // Obsidian tag search treats spaces as separators; quote multi-word
+    // tags so the whole name is matched as one tag.
+    const queryName = /\s/.test(trimmed) ? `"${trimmed}"` : trimmed;
+    const query = `tag:#${queryName}`;
+    const internalPlugins = (this.app as any).internalPlugins;
+    const searchPlugin = internalPlugins?.getPluginById?.('global-search');
+    const instance = searchPlugin?.instance;
+    if (typeof instance?.openGlobalSearch === 'function') {
+      instance.openGlobalSearch(query);
+      return;
+    }
+    new Notice('Global search is not available in this vault.');
   }
 
   // ---------------------------------------------------------------

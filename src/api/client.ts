@@ -8,7 +8,19 @@
  */
 
 export interface PingResponse {
-  status: 'ok';
+  /**
+   * `'ok'` when the server is fully available; `'locked'` when the
+   * desktop app is on its lock/PIN screen and the data endpoints are
+   * temporarily refusing requests. Plugins should render a clear
+   * "PrimeTask is locked" status when `locked` is true instead of a
+   * generic offline message.
+   */
+  status: 'ok' | 'locked';
+  /**
+   * Boolean mirror of `status === 'locked'` for callers that prefer the
+   * direct flag. Always present from server v0.6.4 onward.
+   */
+  locked?: boolean;
   product: 'primetask';
   version: string;
   apiVersion: 'v1';
@@ -154,6 +166,19 @@ export class SpaceMismatchError extends Error {
   }
 }
 
+/**
+ * Thrown when the desktop app is locked (PIN screen / inactivity timeout)
+ * and refused the request with HTTP 423. The plugin keeps the connection
+ * open and surfaces a "PrimeTask is locked" status instead of treating
+ * it as a generic offline error.
+ */
+export class LockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LockedError';
+  }
+}
+
 export interface MeResponse {
   pluginId: string;
   pluginName: string;
@@ -227,6 +252,17 @@ export class PrimeTaskClient {
 
       if (!res.ok) {
         const text = await res.text().catch(() => '');
+        // 423 Locked = desktop app is on its lock/PIN screen. Bubble it
+        // up as a typed error so the connection manager can show a
+        // "PrimeTask is locked" status instead of treating it as offline.
+        if (res.status === 423) {
+          let message = 'PrimeTask is locked';
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed?.message) message = parsed.message;
+          } catch { /* non-JSON body, keep default */ }
+          throw new LockedError(message);
+        }
         // 409 + `space_mismatch` is a structured signal that the locked space
         // doesn't match the desktop app's active space. Bubble it up as a
         // typed error so callers can show a friendly notice instead of crash.

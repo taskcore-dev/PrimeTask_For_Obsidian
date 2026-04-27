@@ -1,4 +1,4 @@
-import { PrimeTaskClient, type PingResponse } from './client';
+import { LockedError, PrimeTaskClient, type PingResponse } from './client';
 
 export type ConnectionStatus =
   | 'disabled'       // user turned sync off
@@ -7,6 +7,7 @@ export type ConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'paused'         // token valid but plugin disabled from PrimeTask side
+  | 'locked'         // PrimeTask is on its lock/PIN screen — port reachable, data refused
   | 'error';
 
 export interface ConnectionState {
@@ -135,13 +136,14 @@ export class ConnectionManager {
     // Only emit the transient 'connecting' status from 'disconnected' or
     // 'error' — otherwise every poll would flip a steady-state
     // 'connected' → 'connecting' → 'connected' and thrash any UI that
-    // redraws on state change (settings panel, status bar). 'paused' is
-    // also preserved through ping so the UI doesn't flicker to connected
-    // between probes.
+    // redraws on state change (settings panel, status bar). 'paused' and
+    // 'locked' are also preserved through ping so the UI doesn't flicker
+    // to connected between probes.
     if (
       this.state.status !== 'connected' &&
       this.state.status !== 'needs-auth' &&
-      this.state.status !== 'paused'
+      this.state.status !== 'paused' &&
+      this.state.status !== 'locked'
     ) {
       this.update({ status: 'connecting' });
     }
@@ -152,6 +154,21 @@ export class ConnectionManager {
       // server restart or brief races. Real revocations are caught by
       // the authenticated sidebar polls (listTasks / listProjects)
       // which trip onUnauthorized within one cycle.
+      //
+      // /ping always responds even when the desktop app is locked. Detect
+      // that here and surface a clear "PrimeTask is locked" status —
+      // distinct from "offline" so users know to unlock the app rather
+      // than restart it.
+      if (res.locked || res.status === 'locked') {
+        this.update({
+          status: 'locked',
+          lastPingAt: Date.now(),
+          lastError: 'PrimeTask is locked. Unlock the app to resume sync.',
+          serverVersion: res.version,
+          serverPhase: res.phase,
+        });
+        return res;
+      }
       //
       // When 'paused', probe /me (authenticated) to detect re-enable
       // from PrimeTask's Connected Plugins toggle. /me → 200 means the
@@ -185,6 +202,17 @@ export class ConnectionManager {
       });
       return res;
     } catch (err) {
+      // 423 from any subsequent request also means locked. Treat the same
+      // as a `locked: true` ping so the UI converges quickly even if a
+      // data poll races ahead of the next /ping cycle.
+      if (err instanceof LockedError) {
+        this.update({
+          status: 'locked',
+          lastPingAt: Date.now(),
+          lastError: err.message,
+        });
+        return null;
+      }
       const message = err instanceof Error ? err.message : String(err);
       this.update({
         status: 'disconnected',
