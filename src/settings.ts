@@ -1,5 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting, normalizePath } from 'obsidian';
 import type PrimeTaskPlugin from './main';
+import { PRIMETASK_LOGO_DATA_URI } from './ui/logoDataUri';
 
 /**
  * Resolve the user's mirror folder setting to a canonical, vault-safe
@@ -159,17 +160,14 @@ export class PrimeTaskSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     const header = containerEl.createDiv({ cls: 'primetask-settings-header' });
 
-    const logoPath = `${this.plugin.manifest.dir ?? ''}/public/Logo/Primetask_logo.png`;
-    try {
-      const src = this.plugin.app.vault.adapter.getResourcePath(logoPath);
-      header.createEl('img', {
-        cls: 'primetask-settings-logo',
-        attr: { src, alt: 'PrimeTask', draggable: 'false' },
-      });
-    } catch {
-      // If the logo can't be loaded (e.g. non-desktop adapter), fall back to a wordmark.
-      header.createEl('div', { cls: 'primetask-settings-wordmark', text: 'PrimeTask' });
-    }
+    // Logo is embedded as a data URI so it ships inside main.js — Obsidian installs
+    // only main.js/manifest.json/styles.css, so a file reference 404s on real
+    // installs. Black wordmark; inverts to white in dark mode via the
+    // .theme-dark .primetask-settings-logo CSS rule.
+    header.createEl('img', {
+      cls: 'primetask-settings-logo',
+      attr: { src: PRIMETASK_LOGO_DATA_URI, alt: 'PrimeTask', draggable: 'false' },
+    });
 
     header.createEl('p', {
       cls: 'primetask-settings-tagline',

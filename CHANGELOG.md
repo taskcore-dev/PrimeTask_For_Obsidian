@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.6
+
+The PrimeTask logo now displays reliably in the settings tab and the side panel (it is bundled with the plugin instead of loaded from a separate file), and the listing logo shows correctly on light and dark backgrounds.
+
 ## v0.1.5
 
 Logo now displays correctly on the plugin listing and on both light and dark backgrounds.

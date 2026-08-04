@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, setIcon, Notice, Menu } from 'obsidian';
 import type PrimeTaskPlugin from '../main';
+import { PRIMETASK_LOGO_DATA_URI } from './logoDataUri';
 import type {
   PrimeTaskProject,
   PrimeTaskTask,
@@ -499,16 +500,13 @@ export class TasksView extends ItemView {
     const titleRow = header.createDiv({ cls: 'primetask-view-titlerow' });
 
     const brand = titleRow.createDiv({ cls: 'primetask-view-brand' });
-    const logoPath = `${this.plugin.manifest.dir ?? ''}/public/Logo/Primetask_logo.png`;
-    try {
-      const src = this.plugin.app.vault.adapter.getResourcePath(logoPath);
-      brand.createEl('img', {
-        cls: 'primetask-view-logo',
-        attr: { src, alt: 'PrimeTask', draggable: 'false' },
-      });
-    } catch {
-      brand.createSpan({ cls: 'primetask-view-brand-fallback', text: 'PrimeTask' });
-    }
+    // Embedded data URI so the logo ships inside main.js (installs don't get the
+    // public/Logo folder). Black wordmark; inverts to white in dark mode via the
+    // .theme-dark .primetask-view-logo CSS rule.
+    brand.createEl('img', {
+      cls: 'primetask-view-logo',
+      attr: { src: PRIMETASK_LOGO_DATA_URI, alt: 'PrimeTask', draggable: 'false' },
+    });
 
     const actions = titleRow.createDiv({ cls: 'primetask-view-actions' });
 

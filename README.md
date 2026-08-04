@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: light)" srcset="public/Logo/Primetask_logo.png" />
-    <img src="public/Logo/Primetask-Logo-White.png" alt="PrimeTask" width="320" />
-  </picture>
+  <img src="public/Logo/Universal.png" alt="PrimeTask" width="320" />
 </p>
 
 # PrimeTask for Obsidian
