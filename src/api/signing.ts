@@ -42,7 +42,7 @@ export function signAuthRequest(pluginId: string, nonce: string, signedAt: strin
     // Lazy-require so we don't pull Node crypto into the bundle until
     // we actually need to sign. Obsidian plugins run with full Node APIs
     // available in the renderer, so this resolves at runtime.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Node's crypto is only available at runtime in Obsidian's desktop renderer; a static import would break bundling for this desktop-only plugin.
     const crypto = require('crypto');
     const privateKey = crypto.createPrivateKey(keyPem);
     const payload = `${pluginId}|${nonce}|${signedAt}`;

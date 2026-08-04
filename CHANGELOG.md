@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.3
+
+Maintenance release for the Obsidian Community directory submission. No changes to how the plugin works.
+
 ## v0.1.2
 
 Second round of beta-tester feedback fixes — clearer status when the desktop app is locked, faster authorise flow, and clickable tag chips in the sidebar.
