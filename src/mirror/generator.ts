@@ -868,7 +868,6 @@ async function migrateLegacyHubFiles(ctx: GenerationContext, root: string): Prom
       ctx.markOwnWrite?.(fromNorm);
       ctx.markOwnWrite?.(toNorm);
       await ctx.vault.rename(fromFile, toNorm);
-      console.info(`[PrimeTask] Migrated legacy ${reason}: ${fromNorm} → ${toNorm}`);
     } catch (err) {
       console.warn(`[PrimeTask] Legacy ${reason} rename failed`, err);
     }

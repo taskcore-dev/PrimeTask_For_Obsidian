@@ -168,7 +168,7 @@ export class PrimeTaskSettingTab extends PluginSettingTab {
       });
     } catch {
       // If the logo can't be loaded (e.g. non-desktop adapter), fall back to a wordmark.
-      header.createEl('h1', { cls: 'primetask-settings-wordmark', text: 'PrimeTask' });
+      header.createEl('div', { cls: 'primetask-settings-wordmark', text: 'PrimeTask' });
     }
 
     header.createEl('p', {
