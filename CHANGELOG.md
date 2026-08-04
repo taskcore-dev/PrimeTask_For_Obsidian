@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.5
+
+Logo now displays correctly on the plugin listing and on both light and dark backgrounds.
+
 ## v0.1.4
 
 Clearer plugin description on the listing, and the logo now shows correctly on dark backgrounds. No changes to how the plugin works.

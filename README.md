@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/Logo/Primetask-Logo-White.png" />
-    <img src="public/Logo/Primetask_logo.png" alt="PrimeTask" width="320" />
+    <source media="(prefers-color-scheme: light)" srcset="public/Logo/Primetask_logo.png" />
+    <img src="public/Logo/Primetask-Logo-White.png" alt="PrimeTask" width="320" />
   </picture>
 </p>
 
