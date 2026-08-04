@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.4
+
+Clearer plugin description on the listing, and the logo now shows correctly on dark backgrounds. No changes to how the plugin works.
+
 ## v0.1.3
 
 Maintenance release for the Obsidian Community directory submission. No changes to how the plugin works.

@@ -1,8 +1,13 @@
 <p align="center">
-  <img src="public/Logo/Primetask_logo.png" alt="PrimeTask" width="320" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/Logo/Primetask-Logo-White.png" />
+    <img src="public/Logo/Primetask_logo.png" alt="PrimeTask" width="320" />
+  </picture>
 </p>
 
 # PrimeTask for Obsidian
+
+**PrimeTask** is an offline-first desktop productivity system for macOS and Windows. It brings tasks, projects, CRM, calendar, a visual canvas, Gantt, focus tools, automations, and custom fields into one app that runs entirely on your machine, with no account and no servers. This plugin connects PrimeTask to Obsidian: turn any note selection into a linked PrimeTask task, browse your tasks and projects in a sidebar, and query them with Bases or Dataview. Nothing leaves your machine.
 
 Built on a deliberate idea: [PrimeTask](https://primetask.app) stays your task and project tool, and Obsidian stays where your thinking happens. The plugin connects the two without trying to turn either into the other.
 
